@@ -1,0 +1,73 @@
+name: Publish demo APK
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Android CI run ID
+        required: true
+        type: string
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: demo-${{ inputs.run_id }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN_ID: ${{ inputs.run_id }}
+    steps:
+      - name: Validate tested source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" > "$RUNNER_TEMP/luma-run.json"
+          python3 - <<'PY'
+          import json, os, pathlib, re
+          run = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'luma-run.json').read_text())
+          if not (run['name'] == 'Android CI' and run['status'] == 'completed' and run['conclusion'] == 'success' and run['event'] == 'push' and run['head_branch'] == 'main' and run['head_repository']['full_name'] == os.environ['GITHUB_REPOSITORY']):
+              raise SystemExit('Select a successful Android CI push build from main')
+          commit = run['head_sha']
+          if not re.fullmatch(r'[0-9a-f]{40}', commit):
+              raise SystemExit('Invalid commit')
+          with open(os.environ['GITHUB_ENV'], 'a') as target:
+              target.write('LUMA_COMMIT=' + commit + '\n')
+          PY
+      - name: Read application version
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/contents/app/build.gradle.kts?ref=$LUMA_COMMIT" > "$RUNNER_TEMP/luma-build.json"
+          python3 - <<'PY'
+          import base64, json, os, pathlib, re
+          data = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'luma-build.json').read_text())
+          source = base64.b64decode(data['content']).decode()
+          match = re.search(r'versionName\s*=\s*providers\.gradleProperty\("appVersionName"\)\.orElse\("([0-9]+\.[0-9]+\.[0-9]+)"\)', source)
+          if match is None:
+              raise SystemExit('Cannot determine the tested application version')
+          with open(os.environ['GITHUB_ENV'], 'a') as target:
+              target.write('LUMA_VERSION=' + match.group(1) + '\n')
+          PY
+      - name: Download verified APK
+        run: gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name luma-demo-debug --dir "$RUNNER_TEMP/luma-apk"
+      - name: Publish demo release
+        shell: bash
+        run: |
+          set -euo pipefail
+          luma_apk="luma-$LUMA_VERSION-demo.apk"
+          cp "$RUNNER_TEMP/luma-apk/app-debug.apk" "$luma_apk"
+          sha256sum "$luma_apk" > "$luma_apk.sha256"
+          cat > "$RUNNER_TEMP/luma-notes.md" <<EOF
+          Luma $LUMA_VERSION — wersja demonstracyjna na Androida 8.0 i nowszego.
+
+          APK pochodzi z pomyślnie zakończonego Android CI i jest podpisaną kluczem testowym paczką debug.
+          Dane są fikcyjne; ta wersja nie loguje się do VULCAN. Testy na fizycznych urządzeniach pozostają do wykonania.
+
+          [Weryfikacja CI](https://github.com/$GITHUB_REPOSITORY/actions/runs/$RUN_ID)
+          [Kod źródłowy](https://github.com/$GITHUB_REPOSITORY/tree/$LUMA_COMMIT)
+          [Lista zmian](https://github.com/$GITHUB_REPOSITORY/blob/$LUMA_COMMIT/CHANGELOG.md)
+          EOF
+          gh release create "demo-$LUMA_VERSION" "$luma_apk" "$luma_apk.sha256" --repo "$GITHUB_REPOSITORY" --target "$LUMA_COMMIT" --prerelease --title "Luma $LUMA_VERSION — demo" --notes-file "$RUNNER_TEMP/luma-notes.md"

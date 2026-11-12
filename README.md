@@ -96,6 +96,10 @@ Repozytorium projektu: [nekusek/luma-app](https://github.com/nekusek/luma-app).
 Nie commituj danych uczniów, sesji, certyfikatów, kluczy ani local.properties.
 
 `Android CI` sprawdza PR i main, publikuje debug APK jako artefakt.
+`Publish demo APK` uruchamiany ręcznie z ID pomyślnego buildu Android CI
+publikuje sprawdzony APK w wydaniu `demo-VERSION`. Wersja i commit są odczytywane
+z tego buildu; workflow przyjmuje wyłącznie pomyślne buildy push z main.
+Wydania demo używają testowego podpisu debug i nie wymagają klucza produkcyjnego.
 Tag `vMAJOR.MINOR.PATCH` uruchamia workflow wydania: testy, lint, podpisany,
 zmniejszony APK, SHA-256 i GitHub Release. CI nie wymaga sekretów do debug build.
 Twórz tag dopiero na sprawdzonym commicie. Workflow release wymaga czterech
