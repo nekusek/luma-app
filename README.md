@@ -1,4 +1,4 @@
-# ZSE Dziennik · Android
+# Luma · Android
 
 Natywny, otwartoźródłowy prototyp dziennika dla uczniów ZSE Rzeszów.
 Inspiracja lekkością Wulkanowego; niezależny projekt, bez afiliacji ze szkołą,

@@ -55,10 +55,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          apk="zse-dziennik-${GITHUB_REF_NAME#v}.apk"
+          apk="luma-${GITHUB_REF_NAME#v}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$apk"
           sha256sum "$apk" > "$apk.sha256"
-          gh release create "$GITHUB_REF_NAME" "$apk" "$apk.sha256" --verify-tag --title "ZSE Dziennik ${GITHUB_REF_NAME#v}" --generate-notes
+          gh release create "$GITHUB_REF_NAME" "$apk" "$apk.sha256" --verify-tag --title "Luma ${GITHUB_REF_NAME#v}" --generate-notes
       - name: Remove temporary signing key
         if: always()
         run: rm -f "$RUNNER_TEMP/release.jks"

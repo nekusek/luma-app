@@ -2,7 +2,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:name=".ZseApplication"
-        android:label="ZSE Dziennik"
+        android:label="Luma"
         android:theme="@style/Theme.Zse"
         android:allowBackup="false"
         android:fullBackupContent="false"
