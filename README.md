@@ -5,7 +5,7 @@ Inspiracja lekkością Wulkanowego; niezależny projekt, bez afiliacji ze szkoł
 VULCAN ani autorami Wulkanowego. Kod napisany od podstaw, licencja MIT.
 Zielony akcent jest propozycją projektu, nie potwierdzoną identyfikacją szkoły.
 
-## Wersja demonstracyjna 0.1.3
+## Wersja demonstracyjna 0.1.4
 
 Kompilowalna aplikacja **wyłącznie demonstracyjna**: Pulpit Compose Material 3,
 Room, Hilt, coroutines/StateFlow, DataStore, Material You, dark/AMOLED.
@@ -13,6 +13,17 @@ Pięć zakładek zawiera działające podglądy fikcyjnych danych. Oceny mają p
 symulator średniej, plan HorizontalPager, frekwencja zestawienie, Więcej ustawienia
 motywu i link do strony szkoły. Przed pierwszym zasileniem bazy pokazuje pusty stan.
 Nie ma produkcyjnego logowania, pobierania danych, wiadomości ani wysyłania usprawiedliwień.
+
+## Widok ocen
+
+Lista przedmiotów pokazuje kolorowe oceny oraz średnią ważoną po prawej.
+Dotknięcie przedmiotu otwiera dolny panel ze średnią, liczbą wpisów, opisami,
+kategoriami, wagami i datami. Symulator jest dostępny w panelu i nie zapisuje zmian.
+Kolory wskazują wartości ocen; wpisy nieliczbowe i oceny o wadze zero nie wpływają na średnią.
+
+Selektor filtruje dane po roku szkolnym (granica 1 września), bez zgadywania dat
+semestrów. Źródło demo nie dostarcza ocen śródrocznych; osobna zakładka pokazuje
+komunikat o ich niedostępności. Nie wyliczamy ocen klasyfikacyjnych ze średnich.
 
 ## Konta i logowanie demo
 
@@ -144,12 +155,13 @@ migracji/instrumentacyjne, testy dostępności i pomiary startupu na urządzeniu
 
 ## Weryfikacja
 
-Weryfikacja 0.1.3 obejmuje `:core:model:test` (3 testy),
+Weryfikacja 0.1.4 obejmuje `:core:model:test` (3 testy),
 `:core:data:testDebugUnitTest` (6 testów),
-`:feature:dashboard:testDebugUnitTest` (4 testy), `:app:testDebugUnitTest` (7 testów),
-`:app:assembleDebug`, `:app:assembleRelease` z R8 oraz `:app:lintDebug`.
+`:feature:dashboard:testDebugUnitTest` (4 testy), `:app:testDebugUnitTest` (10 testów),
+`:app:assembleDebug` oraz `:app:lintDebug`.
 Testy obejmują pełny przepływ logowania, dodawania, przełączania i usuwania kont,
 trwałość wyboru profilu, izolację cache i usuwanie podczas odświeżania.
+Widok ocen ma testy szczegółów, symulatora, granicy roku szkolnego i pustych stanów.
 Lint nie zgłasza błędów; ostrzeżenia dotyczą targetSdk 36 wobec API 37
 oraz dostępności nowszej wersji biblioteki testowej Roborazzi.
 Testy na emulatorze/urządzeniu i kontraktowe testy produkcyjnego VULCAN pozostają

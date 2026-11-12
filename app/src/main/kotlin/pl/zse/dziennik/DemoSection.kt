@@ -22,13 +22,16 @@ import pl.zse.dziennik.model.*
 @Composable
 fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onTheme: (ThemeMode) -> Unit, modifier: Modifier = Modifier, onError: (String) -> Unit = {}, showAssessments: Boolean = false, onShowAssessments: (Boolean) -> Unit = {}, onAccounts: () -> Unit = {}) {
     val data = state.snapshot
+    if (destination == 1) {
+        GradesScreen(data?.grades.orEmpty(), state.now.atZone(SchoolZone).toLocalDate(), data?.student?.name.orEmpty(), onAccounts, modifier)
+        return
+    }
     val titles = listOf("Pulpit", "Oceny", "Plan lekcji", "Frekwencja", "Więcej")
     Column(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(titles[destination], style = MaterialTheme.typography.headlineLarge)
         Text("DEMO · dane fikcyjne", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         if (destination != 4 && data == null) { Text("Brak zapisanych danych. Odśwież Pulpit."); return@Column }
         when (destination) {
-            1 -> GradeViewer(data!!.grades)
             2 -> TimetableViewer(data!!.timetable, state.now.atZone(SchoolZone).toLocalDate())
             3 -> AttendanceScreen(data!!.attendance, data.grades, state.now.atZone(SchoolZone).toLocalDate(), Modifier.weight(1f))
             4 -> {
@@ -70,38 +73,6 @@ fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onT
                     item { Text("Wiadomości i uwagi są niedostępne w wersji demo.", style = MaterialTheme.typography.bodySmall) }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun GradeViewer(grades: List<Grade>) {
-    val groups = grades.groupBy { it.subjectId }.values.toList()
-    var selectedSubjectId by rememberSaveable { mutableStateOf<String?>(null) }
-    var value by rememberSaveable { mutableFloatStateOf(5f) }
-    var weight by rememberSaveable { mutableFloatStateOf(2f) }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        if (groups.isEmpty()) item { Text("Nie ma jeszcze ocen.") }
-        groups.forEach { entries -> item {
-            OutlinedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(entries.first().subjectName, style = MaterialTheme.typography.titleMedium)
-                    Text("Średnia ważona: ${entries.weightedAverage()?.format() ?: "—"}")
-                    entries.forEach { Text("${it.displayValue} · ${it.category} · waga ${it.weight}") }
-                }
-            }
-        } }
-        if (groups.isNotEmpty()) item {
-            val index = groups.indexOfFirst { it.first().subjectId == selectedSubjectId }.coerceAtLeast(0)
-            val entries = groups[index]
-            Text("Symulator średniej", style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = { selectedSubjectId = groups[(index + 1) % groups.size].first().subjectId }) { Text("Przedmiot: ${entries.first().subjectName}") }
-            Text("Ocena ${value.toInt()} · waga ${weight.toInt()}")
-            Slider(value = value, onValueChange = { value = it }, valueRange = 1f..6f, steps = 4)
-            Slider(value = weight, onValueChange = { weight = it }, valueRange = 1f..5f, steps = 3)
-            val simulated = entries + entries.first().copy(id = "simulation", displayValue = value.toInt().toString(), numericValue = value.toInt().toDouble(), weight = weight.toInt(), countsTowardsAverage = true)
-            Text("Po dodaniu: ${simulated.weightedAverage()?.format()}", style = MaterialTheme.typography.titleMedium)
-            Text("Symulacja nie zmienia zapisanych ocen.", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

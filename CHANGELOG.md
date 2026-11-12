@@ -1,5 +1,14 @@
 # Luma
 
+## 0.1.4 — 2026-11-12
+
+- Nowa lista ocen: przedmioty, kolorowe wartości i średnie po prawej.
+- Dolny panel szczegółów z liczbą ocen, wagami, kategoriami, opisami i datami.
+- Symulator średniej przeniesiony do szczegółów przedmiotu.
+- Wybór roku szkolnego oraz osobna zakładka ocen śródrocznych z komunikatem o braku danych demo.
+- Przycisk profilu w nagłówku ocen oraz obsługa jasnego, ciemnego i AMOLED motywu.
+- Testy UI szczegółów ocen, symulatora i filtrowania roku szkolnego.
+
 ## 0.1.3 — 2026-11-12
 
 - Ekran logowania demo z wyborem jednego z dwóch fikcyjnych profili.
