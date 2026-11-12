@@ -92,8 +92,7 @@ prognozą oceny klasyfikacyjnej.
 
 ## GitHub i kolejne wersje
 
-Repozytorium nie zostało jeszcze opublikowane. Po wskazaniu docelowego repo i
-zapewnieniu działającego uwierzytelnienia można wypchnąć ten katalog jako projekt.
+Repozytorium projektu: [nekusek/luma-app](https://github.com/nekusek/luma-app).
 Nie commituj danych uczniów, sesji, certyfikatów, kluczy ani local.properties.
 
 `Android CI` sprawdza PR i main, publikuje debug APK jako artefakt.
