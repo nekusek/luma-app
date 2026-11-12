@@ -21,6 +21,9 @@ object AppModule {
         Room.databaseBuilder(context, SchoolDatabase::class.java, "zse-demo.db").build()
     @Provides fun dao(database: SchoolDatabase): SchoolDao = database.schoolDao()
     @Provides @Singleton fun source(clock: Clock): SnapshotSource = MockDataRepository(clock)
-    @Provides @Singleton fun repository(dao: SchoolDao, source: SnapshotSource): SchoolRepository = CachedSchoolRepository(dao, source)
+    @Provides @Singleton fun cachedRepository(dao: SchoolDao, source: SnapshotSource): CachedSchoolRepository = CachedSchoolRepository(dao, source)
+    @Provides fun repository(cached: CachedSchoolRepository): SchoolRepository = cached
     @Provides @Singleton fun preferences(@ApplicationContext context: Context): ThemePreferences = ThemePreferences(context)
+    @Provides @Singleton fun accounts(@ApplicationContext context: Context, cached: CachedSchoolRepository): AccountRepository =
+        LocalAccountRepository(context, listOf(DemoAuthenticationProvider()), cached::clearStudent)
 }

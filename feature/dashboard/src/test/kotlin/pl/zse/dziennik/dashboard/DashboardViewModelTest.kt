@@ -35,7 +35,7 @@ class DashboardViewModelTest {
     @Before fun setup() { Dispatchers.setMain(dispatcher) }
     @After fun cleanup() { store.clear(); Dispatchers.resetMain() }
 
-    private fun viewModel(repository: SchoolRepository) = DashboardViewModel(repository, clock).also { store.put("dashboard", it) }
+    private fun viewModel(repository: SchoolRepository) = DashboardViewModel(repository, clock, "demo-zse-3ti").also { store.put("dashboard", it) }
 
     @Test fun `failed refresh keeps cache and repeated taps start a single retry`() = runTest(dispatcher) {
         var refreshes = 0

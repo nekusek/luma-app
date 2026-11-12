@@ -2,7 +2,6 @@ package pl.zse.dziennik.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import java.time.Clock
 import java.time.Instant
@@ -21,9 +20,7 @@ data class DashboardUiState(
     val error: String? = null,
 )
 
-@HiltViewModel
-class DashboardViewModel @Inject constructor(private val repository: SchoolRepository, private val clock: Clock) : ViewModel() {
-    private val studentId = "demo-zse-3ti"
+class DashboardViewModel(private val repository: SchoolRepository, private val clock: Clock, private val studentId: String) : ViewModel() {
     private val refreshing = MutableStateFlow(false)
     private val refreshError = MutableStateFlow<String?>(null)
     private val readError = MutableStateFlow<String?>(null)
@@ -56,4 +53,8 @@ class DashboardViewModel @Inject constructor(private val repository: SchoolRepos
             finally { refreshing.value = false }
         }
     }
+}
+
+class DashboardViewModelFactory @Inject constructor(private val repository: SchoolRepository, private val clock: Clock) {
+    fun create(studentId: String) = DashboardViewModel(repository, clock, studentId)
 }

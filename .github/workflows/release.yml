@@ -45,7 +45,7 @@ jobs:
           ZSE_SIGNING_KEY_ALIAS: ${{ secrets.ZSE_SIGNING_KEY_ALIAS }}
           ZSE_SIGNING_KEY_PASSWORD: ${{ secrets.ZSE_SIGNING_KEY_PASSWORD }}
         run: >-
-          ./gradlew :core:model:test :feature:dashboard:testDebugUnitTest :app:testDebugUnitTest :app:lintRelease :app:assembleRelease --no-daemon
+          ./gradlew :core:model:test :core:data:testDebugUnitTest :feature:dashboard:testDebugUnitTest :app:testDebugUnitTest :app:lintRelease :app:assembleRelease --no-daemon
           -PappVersionName="${GITHUB_REF_NAME#v}"
           -PappVersionCode="$((100000 + GITHUB_RUN_NUMBER))"
       - name: Publish APK and checksum

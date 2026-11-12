@@ -5,7 +5,7 @@ Inspiracja lekkością Wulkanowego; niezależny projekt, bez afiliacji ze szkoł
 VULCAN ani autorami Wulkanowego. Kod napisany od podstaw, licencja MIT.
 Zielony akcent jest propozycją projektu, nie potwierdzoną identyfikacją szkoły.
 
-## Wersja demonstracyjna 0.1.2
+## Wersja demonstracyjna 0.1.3
 
 Kompilowalna aplikacja **wyłącznie demonstracyjna**: Pulpit Compose Material 3,
 Room, Hilt, coroutines/StateFlow, DataStore, Material You, dark/AMOLED.
@@ -13,6 +13,22 @@ Pięć zakładek zawiera działające podglądy fikcyjnych danych. Oceny mają p
 symulator średniej, plan HorizontalPager, frekwencja zestawienie, Więcej ustawienia
 motywu i link do strony szkoły. Przed pierwszym zasileniem bazy pokazuje pusty stan.
 Nie ma produkcyjnego logowania, pobierania danych, wiadomości ani wysyłania usprawiedliwień.
+
+## Konta i logowanie demo
+
+Pierwszy start otwiera ekran logowania z dwoma fikcyjnymi profilami uczniów.
+Przełącznik kont znajduje się na Pulpicie oraz w sekcji Więcej → Konta i profile.
+Można dodać drugi profil, przełączyć aktywny oraz usunąć konto z urządzenia.
+Lista kont i aktywny profil przetrwają ponowne uruchomienie. Dane Room są rozdzielone
+według ucznia; usunięcie konta czyści jego cache także po trwającym odświeżaniu.
+
+`AccountRepository` i `AuthenticationProvider` oddzielają UI od sposobu logowania.
+Obecnie Hilt rejestruje tylko `DemoAuthenticationProvider`; przycisk eduVULCAN jest
+nieaktywny. Produkcyjny dostawca może zwrócić kilka profili, a ekran przyjmuje
+callback uruchamiający właściwą autoryzację. Należy również podmienić `SnapshotSource`
+i dodać zweryfikowaną obsługę przekierowań oraz sesji per konto.
+DataStore zapisuje wyłącznie metadane profili, bez haseł i tokenów.
+Demo nie nawiązuje połączenia z eduVULCAN i nie prosi o prawdziwe dane logowania.
 
 ## Struktura i kierunek zależności
 
@@ -57,7 +73,7 @@ targetSdk = 36, minSdk = 26. Otwórz projekt w aktualnym
 Android Studio albo ustaw `ANDROID_HOME`. Lokalne `local.properties` nie trafia do Git.
 
 ```bash
-./gradlew :core:model:test :feature:dashboard:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+./gradlew :core:model:test :core:data:testDebugUnitTest :feature:dashboard:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`. Zależności są przypięte w
@@ -128,11 +144,14 @@ migracji/instrumentacyjne, testy dostępności i pomiary startupu na urządzeniu
 
 ## Weryfikacja
 
-Weryfikacja 0.1.2 obejmuje `:core:model:test` (3 testy),
-`:feature:dashboard:testDebugUnitTest` (4 testy), `:app:testDebugUnitTest` (3 testy UI), `:app:assembleDebug`,
-`:app:assembleRelease` z R8 oraz `:app:lintDebug`. Lint zgłasza ostrzeżenie
-o targetSdk 36 wobec najnowszego API 37. Aplikacja ma własną ikonę launchera.
-Zweryfikowano start Gradle Wrapper i podpis v2 APK debug przy użyciu apksigner.
+Weryfikacja 0.1.3 obejmuje `:core:model:test` (3 testy),
+`:core:data:testDebugUnitTest` (6 testów),
+`:feature:dashboard:testDebugUnitTest` (4 testy), `:app:testDebugUnitTest` (7 testów),
+`:app:assembleDebug`, `:app:assembleRelease` z R8 oraz `:app:lintDebug`.
+Testy obejmują pełny przepływ logowania, dodawania, przełączania i usuwania kont,
+trwałość wyboru profilu, izolację cache i usuwanie podczas odświeżania.
+Lint nie zgłasza błędów; ostrzeżenia dotyczą targetSdk 36 wobec API 37
+oraz dostępności nowszej wersji biblioteki testowej Roborazzi.
 Testy na emulatorze/urządzeniu i kontraktowe testy produkcyjnego VULCAN pozostają
 do wykonania. Lokalne `assembleRelease` bez konfiguracji klucza generuje unsigned
 APK; workflow GitHub wymaga klucza i publikuje dopiero podpisane wydanie.

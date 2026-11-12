@@ -14,4 +14,6 @@ class CachedSchoolRepository(private val dao: SchoolDao, private val source: Sna
         require(snapshot.student.id == studentId)
         dao.replaceSnapshot(snapshot)
     }
+
+    suspend fun clearStudent(studentId: String) = refreshMutex.withLock { dao.deleteStudent(studentId) }
 }

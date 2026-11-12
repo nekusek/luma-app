@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.painterResource
 import android.content.ActivityNotFoundException
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
@@ -19,7 +20,7 @@ import pl.zse.dziennik.model.*
 
 
 @Composable
-fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onTheme: (ThemeMode) -> Unit, modifier: Modifier = Modifier, onError: (String) -> Unit = {}, showAssessments: Boolean = false, onShowAssessments: (Boolean) -> Unit = {}) {
+fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onTheme: (ThemeMode) -> Unit, modifier: Modifier = Modifier, onError: (String) -> Unit = {}, showAssessments: Boolean = false, onShowAssessments: (Boolean) -> Unit = {}, onAccounts: () -> Unit = {}) {
     val data = state.snapshot
     val titles = listOf("Pulpit", "Oceny", "Plan lekcji", "Frekwencja", "Więcej")
     Column(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -33,6 +34,12 @@ fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onT
             4 -> {
                 val uri = LocalUriHandler.current
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item { OutlinedCard(onClick = onAccounts, modifier = Modifier.fillMaxWidth()) {
+                        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Icon(painterResource(R.drawable.ic_switch_account), null)
+                            Column { Text("Konta i profile", style = MaterialTheme.typography.titleMedium); Text("Przełącz konto lub dodaj nowy profil", style = MaterialTheme.typography.bodySmall) }
+                        }
+                    } }
                     item { TextButton(onClick = { onShowAssessments(!showAssessments) }) { Text(if (showAssessments) "Ustawienia" else "Sprawdziany") } }
                     if (showAssessments) {
                         item { Text("Sprawdziany", style = MaterialTheme.typography.titleLarge) }
@@ -49,7 +56,7 @@ fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onT
                         } }
                         return@LazyColumn
                     }
-                    item { Text("Wygląd", style = MaterialTheme.typography.titleMedium) }
+                    item { Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) { Icon(painterResource(R.drawable.ic_palette), null); Text("Wygląd", style = MaterialTheme.typography.titleMedium) } }
                     ThemeMode.entries.forEach { mode -> item {
                         Row { RadioButton(selected = theme == mode, onClick = { onTheme(mode) }); TextButton(onClick = { onTheme(mode) }) { Text(mode.label()) } }
                     } }

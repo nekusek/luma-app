@@ -25,18 +25,21 @@ private fun Double.display() = String.format(polish, "%.1f", this)
 enum class DashboardDestination { GRADES, TIMETABLE, ATTENDANCE, ASSESSMENTS }
 
 @Composable
-fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier, onNavigate: (DashboardDestination) -> Unit = {}) {
+fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier, onNavigate: (DashboardDestination) -> Unit = {}, accountAction: @Composable () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
-    DashboardScreen(state.copy(now = now), viewModel::refresh, modifier, onNavigate)
+    DashboardScreen(state.copy(now = now), viewModel::refresh, modifier, onNavigate, accountAction)
 }
 
 @Composable
-fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Modifier = Modifier, onNavigate: (DashboardDestination) -> Unit = {}) {
+fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Modifier = Modifier, onNavigate: (DashboardDestination) -> Unit = {}, accountAction: @Composable () -> Unit = {}) {
     val data = state.snapshot
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            Text("Pulpit", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text("Pulpit", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                accountAction()
+            }
             Text(dateFormat.format(state.now).replaceFirstChar { it.titlecase(polish) }, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(data?.student?.className ?: "Brak zapisanych danych", modifier = Modifier.padding(top = 12.dp))

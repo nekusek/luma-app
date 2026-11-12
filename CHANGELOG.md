@@ -1,5 +1,15 @@
 # Luma
 
+## 0.1.3 — 2026-11-12
+
+- Ekran logowania demo z wyborem jednego z dwóch fikcyjnych profili.
+- Dodawanie i przełączanie kont z Pulpitu oraz sekcji Więcej.
+- Zapamiętywanie aktywnego profilu i oddzielny cache uczniów.
+- Usuwanie konta z potwierdzeniem i czyszczeniem lokalnych danych.
+- Kontrakty dostawców logowania przygotowane do przyszłego adaptera eduVULCAN.
+- Nowe ikony logowania, kont, bezpieczeństwa i ustawień motywu.
+- Testy repozytorium kont i przepływu logowania w UI, dodane do CI.
+
 ## 0.1.2 — 2026-11-12
 
 - Usunięcie nagłówka ZSE / RZESZÓW z Pulpitu.
