@@ -4,7 +4,7 @@ import java.time.Clock
 import java.time.LocalDate
 import pl.zse.dziennik.model.*
 
-/** Deterministic, network-free source. All UI reads still go through Room. */
+
 class MockDataRepository(private val clock: Clock) : SnapshotSource {
     override suspend fun fetch(studentId: String): SchoolSnapshot {
         require(studentId == DEMO_STUDENT_ID)

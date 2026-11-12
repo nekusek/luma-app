@@ -46,7 +46,7 @@ abstract class SchoolDao {
     @Query("DELETE FROM assessments WHERE studentId = :studentId") abstract suspend fun clearAssessments(studentId: String)
     @Query("DELETE FROM students WHERE id = :studentId") abstract suspend fun deleteStudent(studentId: String)
 
-    /** Replace only after the complete response has been validated; transaction rolls back on failure. */
+
     @Transaction
     open suspend fun replaceSnapshot(snapshot: SchoolSnapshot) {
         val s = snapshot.student

@@ -10,7 +10,7 @@ class CachedSchoolRepository(private val dao: SchoolDao, private val source: Sna
     private val refreshMutex = Mutex()
     override fun observe(studentId: String) = dao.observeSnapshot(studentId).map { it?.toModel() }
     override suspend fun refresh(studentId: String) = refreshMutex.withLock {
-        val snapshot = source.fetch(studentId) // No database writes on network failure.
+        val snapshot = source.fetch(studentId)
         require(snapshot.student.id == studentId)
         dao.replaceSnapshot(snapshot)
     }

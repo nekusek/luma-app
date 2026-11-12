@@ -13,13 +13,12 @@ import java.time.Instant
 
 fun createSchoolHttpClient() = HttpClient(OkHttp) {
     expectSuccess = true
-    followRedirects = false // Auth adapter must validate every redirect against its provider allowlist.
+    followRedirects = false
     install(HttpTimeout) { requestTimeoutMillis = 20_000; connectTimeoutMillis = 10_000 }
     install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
-    // Never log tokens, cookies, certificates or student records.
 }
 
-/** Populated from verified tenant metadata, never from a guessed Rzeszów URL. */
+
 data class VulcanTenant(val municipality: String, val apiBase: URI, val authBase: URI) {
     init {
         require(listOf(apiBase, authBase).all { it.scheme == "https" && it.host != null && it.userInfo == null })
@@ -32,15 +31,13 @@ sealed interface LoginMethod {
     data object DeviceCertificate : LoginMethod
 }
 
-/** Internal storage DTO, not a claim about a VULCAN response schema. */
+
 @Serializable
 data class SessionTokens(val accessToken: String, val refreshToken: String?, val expiresAtEpochSeconds: Long)
 
 data class SigningInput(val method: String, val uri: URI, val body: ByteArray, val timestamp: Instant, val nonce: String)
 
-/** Adapter owns exact canonicalization and v-request-* headers for a verified protocol version. */
+
 interface VulcanRequestSigner { suspend fun headers(input: SigningInput): Map<String, String> }
 
 fun sha256(bytes: ByteArray): ByteArray = MessageDigest.getInstance("SHA-256").digest(bytes)
-
-// No production login/signer is bound in DI. A SHA-256 digest alone is not a request signature.

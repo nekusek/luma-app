@@ -23,31 +23,36 @@ data class DashboardUiState(
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(private val repository: SchoolRepository, private val clock: Clock) : ViewModel() {
-    private val studentId = "demo-zse-3ti" // Replaced by selected account after production onboarding.
+    private val studentId = "demo-zse-3ti"
     private val refreshing = MutableStateFlow(false)
-    private val error = MutableStateFlow<String?>(null)
-    private val ticker = flow {
+    private val refreshError = MutableStateFlow<String?>(null)
+    private val readError = MutableStateFlow<String?>(null)
+    val now = flow {
         while (currentCoroutineContext().isActive) { emit(clock.instant()); delay(1_000) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), clock.instant())
+    private val snapshot = repository.observe(studentId)
+        .onEach { readError.value = null }
+        .retryWhen { cause, attempt ->
+            if (cause is CancellationException) throw cause
+            readError.value = "Nie można odczytać danych lokalnych. Ponawiam próbę."
+            delay((1_000L shl attempt.coerceAtMost(5).toInt()).coerceAtMost(30_000L))
+            true
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+    val state: StateFlow<DashboardUiState> = combine(snapshot, refreshing, refreshError, readError) { data, loading, syncMessage, localMessage ->
+        DashboardUiState(data, clock.instant(), loading, localMessage ?: syncMessage)
     }
-    val state: StateFlow<DashboardUiState> = combine(
-        repository.observe(studentId).catch { e ->
-            if (e is CancellationException) throw e
-            error.value = "Nie można odczytać danych lokalnych."
-            emit(null)
-        }, ticker, refreshing, error,
-    ) { snapshot, now, loading, message -> DashboardUiState(snapshot, now, loading, message) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DashboardUiState(now = clock.instant()))
 
     init { refresh() }
 
     fun refresh() {
-        if (refreshing.value) return
-        refreshing.value = true
+        if (!refreshing.compareAndSet(false, true)) return
         viewModelScope.launch {
-            error.value = null
+            refreshError.value = null
             try { repository.refresh(studentId) }
             catch (e: CancellationException) { throw e }
-            catch (_: Exception) { error.value = "Odświeżanie nie powiodło się. Wyświetlam zapisane dane." }
+            catch (_: Exception) { refreshError.value = "Odświeżanie nie powiodło się. Wyświetlam zapisane dane." }
             finally { refreshing.value = false }
         }
     }

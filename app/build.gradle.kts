@@ -13,8 +13,8 @@ android {
         applicationId = "pl.zse.dziennik"
         minSdk = 26
         targetSdk = 36
-        versionCode = providers.gradleProperty("appVersionCode").orElse("1").get().toInt()
-        versionName = providers.gradleProperty("appVersionName").orElse("0.1.0").get()
+        versionCode = providers.gradleProperty("appVersionCode").orElse("2").get().toInt()
+        versionName = providers.gradleProperty("appVersionName").orElse("0.1.1").get()
     }
     buildFeatures { compose = true }
     val releaseStore = providers.environmentVariable("ZSE_SIGNING_STORE_FILE").orNull

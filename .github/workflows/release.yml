@@ -10,7 +10,6 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # Configure this environment in GitHub Settings; keep one permanent signing key.
     environment: release
     steps:
       - uses: actions/checkout@v7.0.1
@@ -46,7 +45,7 @@ jobs:
           ZSE_SIGNING_KEY_ALIAS: ${{ secrets.ZSE_SIGNING_KEY_ALIAS }}
           ZSE_SIGNING_KEY_PASSWORD: ${{ secrets.ZSE_SIGNING_KEY_PASSWORD }}
         run: >-
-          ./gradlew :core:model:test :app:lintRelease :app:assembleRelease --no-daemon
+          ./gradlew :core:model:test :feature:dashboard:testDebugUnitTest :app:lintRelease :app:assembleRelease --no-daemon
           -PappVersionName="${GITHUB_REF_NAME#v}"
           -PappVersionCode="$((100000 + GITHUB_RUN_NUMBER))"
       - name: Publish APK and checksum

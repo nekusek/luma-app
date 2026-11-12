@@ -5,6 +5,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -20,7 +22,13 @@ private val timeFormat = DateTimeFormatter.ofPattern("HH:mm", polish).withZone(S
 private val dateFormat = DateTimeFormatter.ofPattern("EEEE, d MMMM", polish).withZone(SchoolZone)
 private fun Double.display() = String.format(polish, "%.1f", this)
 
-/** Stateless, previewable dashboard. Never waits for a network call to render Room data. */
+@Composable
+fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val now by viewModel.now.collectAsStateWithLifecycle()
+    DashboardScreen(state.copy(now = now), viewModel::refresh, modifier)
+}
+
 @Composable
 fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Modifier = Modifier) {
     val data = state.snapshot
@@ -51,6 +59,9 @@ fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Mo
                         Text("Na dziś to wszystko", style = MaterialTheme.typography.headlineSmall)
                         Text("Brak kolejnych lekcji w zapisanym planie.")
                     } else {
+                        if (next.startsAt.atZone(SchoolZone).toLocalDate() != state.now.atZone(SchoolZone).toLocalDate()) {
+                            Text(dateFormat.format(next.startsAt), style = MaterialTheme.typography.labelLarge)
+                        }
                         Text(next.subjectName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                         Text("${timeFormat.format(next.startsAt)}–${timeFormat.format(next.endsAt)} · sala ${next.room ?: "—"}${next.group?.let { " · grupa $it" } ?: ""}")
                         val active = next.startsAt <= state.now
@@ -95,7 +106,7 @@ fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Mo
             }
             item {
                 Tile("Najbliższy sprawdzian") {
-                    val assessment = data.assessments.firstOrNull { it.date >= state.now.atZone(SchoolZone).toLocalDate() }
+                    val assessment = data.assessments.filter { it.date >= state.now.atZone(SchoolZone).toLocalDate() }.minByOrNull { it.date }
                     Text(assessment?.subject ?: "Brak zaplanowanych sprawdzianów", fontWeight = FontWeight.SemiBold)
                     assessment?.let { Text("${it.date} · ${it.title}") }
                 }

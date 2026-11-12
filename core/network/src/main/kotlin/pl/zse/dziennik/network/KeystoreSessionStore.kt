@@ -12,7 +12,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/** Dedicated encrypted store excluded from backups by the app manifest. Never stores a password. */
+
 class KeystoreSessionStore(context: Context) {
     private val preferences = context.getSharedPreferences("encrypted_session", Context.MODE_PRIVATE)
     private val alias = "zse.session.aes.v1"
@@ -36,7 +36,7 @@ class KeystoreSessionStore(context: Context) {
         }
     }
 
-    /** Keystore invalidation/authentication errors are propagated so the caller can require re-login. */
+
     suspend fun read(): ByteArray? = withContext(Dispatchers.IO) {
         synchronized(lock) {
             preferences.getString("session", null)?.let { encoded ->

@@ -10,7 +10,7 @@ enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
 
 data class Student(val id: String, val name: String, val className: String, val school: String)
 
-/** Numeric value is supplied by a verified mapper; '+' and '-' are not guessed. */
+
 data class Grade(
     val id: String,
     val studentId: String,
@@ -64,7 +64,7 @@ data class Attendance(
     val date: LocalDate, val status: AttendanceStatus,
 )
 
-/** Demo rule: late counts as present, release is excluded; verify school policy for live data. */
+
 fun Iterable<Attendance>.attendancePercent(): Double? {
     val eligible = filter { it.status != AttendanceStatus.RELEASED }
     return eligible.takeIf { it.isNotEmpty() }?.let {
@@ -88,5 +88,5 @@ interface SchoolRepository {
     suspend fun refresh(studentId: String)
 }
 
-/** A successful response must be a complete snapshot for one student. Partial responses must not be passed here. */
+
 interface SnapshotSource { suspend fun fetch(studentId: String): SchoolSnapshot }

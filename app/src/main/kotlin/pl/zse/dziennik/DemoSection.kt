@@ -9,6 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import android.content.ActivityNotFoundException
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -16,9 +17,9 @@ import java.util.Locale
 import pl.zse.dziennik.dashboard.DashboardUiState
 import pl.zse.dziennik.model.*
 
-/** Small mock-data viewers for this first iteration; move to dedicated feature modules as they grow. */
+
 @Composable
-fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onTheme: (ThemeMode) -> Unit, modifier: Modifier = Modifier) {
+fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onTheme: (ThemeMode) -> Unit, modifier: Modifier = Modifier, onError: (String) -> Unit = {}) {
     val data = state.snapshot
     val titles = listOf("Pulpit", "Oceny", "Plan lekcji", "Frekwencja", "Więcej")
     Column(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -29,11 +30,11 @@ fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onT
             1 -> GradeViewer(data!!.grades)
             2 -> TimetableViewer(data!!.timetable, state.now.atZone(SchoolZone).toLocalDate())
             3 -> {
-                Text("${data!!.attendance.attendancePercent()?.format() ?: "—"}%", style = MaterialTheme.typography.displaySmall)
+                Text(data!!.attendance.attendancePercent()?.let { "${it.format()}%" } ?: "Brak danych", style = MaterialTheme.typography.displaySmall)
                 Text("Spóźnienie liczone jako obecność; zwolnienie poza mianownikiem. Reguła demonstracyjna.")
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     data.attendance.groupBy { it.subjectId }.forEach { (subject, entries) -> item {
-                        Text("${data.grades.firstOrNull { it.subjectId == subject }?.subjectName ?: subject}: ${entries.attendancePercent()?.format() ?: "—"}%")
+                        Text("${data.grades.firstOrNull { it.subjectId == subject }?.subjectName ?: subject}: ${entries.attendancePercent()?.let { "${it.format()}%" } ?: "Brak danych"}")
                     } }
                     AttendanceStatus.entries.forEach { status -> item { Text("${status.label()}: ${data.attendance.count { it.status == status }}") } }
                 }
@@ -46,9 +47,13 @@ fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onT
                         Row { RadioButton(selected = theme == mode, onClick = { onTheme(mode) }); TextButton(onClick = { onTheme(mode) }) { Text(mode.label()) } }
                     } }
                     item { HorizontalDivider() }
-                    item { TextButton(onClick = { uri.openUri("https://zse.rzeszow.pl/") }) { Text("zse.rzeszow.pl ↗") } }
-                    item { Text("Linki do zastępstw i planu laboratoriów wymagają potwierdzenia oficjalnych adresów.", style = MaterialTheme.typography.bodySmall) }
-                    item { Text("Wiadomości, uwagi i harmonogram synchronizacji: zakres kolejnej iteracji.", style = MaterialTheme.typography.bodySmall) }
+                    item { TextButton(onClick = {
+                        try { uri.openUri("https://zse.rzeszow.pl/") }
+                        catch (_: ActivityNotFoundException) { onError("Nie znaleziono przeglądarki do otwarcia strony.") }
+                        catch (_: IllegalArgumentException) { onError("Nie udało się otworzyć strony w przeglądarce.") }
+                    }) { Text("zse.rzeszow.pl ↗") } }
+                    item { Text("Zastępstwa i plan laboratoriów są niedostępne w wersji demo.", style = MaterialTheme.typography.bodySmall) }
+                    item { Text("Wiadomości i uwagi są niedostępne w wersji demo.", style = MaterialTheme.typography.bodySmall) }
                 }
             }
         }
@@ -58,10 +63,11 @@ fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onT
 @Composable
 private fun GradeViewer(grades: List<Grade>) {
     val groups = grades.groupBy { it.subjectId }.values.toList()
-    var selected by rememberSaveable { mutableIntStateOf(0) }
+    var selectedSubjectId by rememberSaveable { mutableStateOf<String?>(null) }
     var value by rememberSaveable { mutableFloatStateOf(5f) }
     var weight by rememberSaveable { mutableFloatStateOf(2f) }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        if (groups.isEmpty()) item { Text("Nie ma jeszcze ocen.") }
         groups.forEach { entries -> item {
             OutlinedCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
@@ -72,10 +78,10 @@ private fun GradeViewer(grades: List<Grade>) {
             }
         } }
         if (groups.isNotEmpty()) item {
-            val index = selected.coerceIn(groups.indices)
+            val index = groups.indexOfFirst { it.first().subjectId == selectedSubjectId }.coerceAtLeast(0)
             val entries = groups[index]
             Text("Symulator średniej", style = MaterialTheme.typography.titleLarge)
-            TextButton(onClick = { selected = (index + 1) % groups.size }) { Text("Przedmiot: ${entries.first().subjectName}") }
+            TextButton(onClick = { selectedSubjectId = groups[(index + 1) % groups.size].first().subjectId }) { Text("Przedmiot: ${entries.first().subjectName}") }
             Text("Ocena ${value.toInt()} · waga ${weight.toInt()}")
             Slider(value = value, onValueChange = { value = it }, valueRange = 1f..6f, steps = 4)
             Slider(value = weight, onValueChange = { weight = it }, valueRange = 1f..5f, steps = 3)
@@ -88,9 +94,10 @@ private fun GradeViewer(grades: List<Grade>) {
 
 @Composable
 private fun TimetableViewer(entries: List<TimetableEntry>, today: LocalDate) {
+    val anchorEpochDay by rememberSaveable { mutableLongStateOf(today.toEpochDay()) }
     val pager = rememberPagerState(initialPage = 7, pageCount = { 15 })
     HorizontalPager(state = pager, modifier = Modifier.fillMaxSize()) { page ->
-        val day = today.plusDays((page - 7).toLong())
+        val day = LocalDate.ofEpochDay(anchorEpochDay).plusDays((page - 7).toLong())
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item { Text(day.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("pl-PL"))), style = MaterialTheme.typography.titleMedium) }
             val daily = entries.filter { it.startsAt.atZone(SchoolZone).toLocalDate() == day }
