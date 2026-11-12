@@ -1,5 +1,14 @@
 # Luma
 
+## 0.1.2 — 2026-11-12
+
+- Usunięcie nagłówka ZSE / RZESZÓW z Pulpitu.
+- Klikalne kafelki prowadzące do planu, ocen, frekwencji i sprawdzianów.
+- Nowy widok frekwencji: podsumowanie, liczniki statusów i szczegóły przedmiotów.
+- Historia obecności z filtrami statusu oraz zakresy wszystkich danych i bieżącego miesiąca.
+- Lista sprawdzianów dostępna z Pulpitu i sekcji Więcej.
+- Testy UI nawigacji, filtrów i braku danych, uruchamiane również w CI.
+
 ## 0.1.1 — 2026-11-12
 
 - Ponawianie odczytu Room po błędzie z zachowaniem ostatnich danych.

@@ -13,10 +13,11 @@ android {
         applicationId = "pl.zse.dziennik"
         minSdk = 26
         targetSdk = 36
-        versionCode = providers.gradleProperty("appVersionCode").orElse("2").get().toInt()
-        versionName = providers.gradleProperty("appVersionName").orElse("0.1.1").get()
+        versionCode = providers.gradleProperty("appVersionCode").orElse("3").get().toInt()
+        versionName = providers.gradleProperty("appVersionName").orElse("0.1.2").get()
     }
     buildFeatures { compose = true }
+    testOptions { unitTests.isIncludeAndroidResources = true }
     val releaseStore = providers.environmentVariable("ZSE_SIGNING_STORE_FILE").orNull
     signingConfigs {
         if (releaseStore != null) create("distribution") {
@@ -54,4 +55,17 @@ dependencies {
     implementation(libs.coroutines.core)
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.core)
+    testImplementation(libs.compose.ui.test)
+    debugImplementation(libs.compose.test.manifest)
+}
+
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    maxHeapSize = "2g"
+    doFirst { layout.buildDirectory.dir("test-home").get().asFile.mkdirs() }
+    systemProperty("user.home", layout.buildDirectory.dir("test-home").get().asFile.absolutePath)
+    systemProperty("robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2")
 }

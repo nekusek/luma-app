@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
             val theme by preferences.theme.collectAsStateWithLifecycle(initialValue = ThemeMode.SYSTEM)
             val scope = rememberCoroutineScope()
             var destination by rememberSaveable { mutableIntStateOf(0) }
+            var showAssessments by rememberSaveable { mutableStateOf(false) }
             val snackbar = remember { SnackbarHostState() }
             val screens = rememberSaveableStateHolder()
             BackHandler(enabled = destination != 0) { destination = 0 }
@@ -61,19 +62,27 @@ class MainActivity : ComponentActivity() {
                         val titles = listOf("Pulpit", "Oceny", "Plan", "Obecności", "Więcej")
                         val icons = listOf(R.drawable.ic_dashboard, R.drawable.ic_grades, R.drawable.ic_timetable, R.drawable.ic_attendance, R.drawable.ic_more)
                         titles.forEachIndexed { index, title ->
-                            NavigationBarItem(selected = destination == index, onClick = { destination = index },
+                            NavigationBarItem(selected = destination == index, onClick = { destination = index; showAssessments = false },
                                 icon = { Icon(painterResource(icons[index]), contentDescription = null) }, label = { Text(title, maxLines = 2) })
                         }
                     }
                 }) { padding ->
                     screens.SaveableStateProvider(destination) {
-                        if (destination == 0) DashboardRoute(viewModel, Modifier.padding(padding))
+                        if (destination == 0) DashboardRoute(viewModel, Modifier.padding(padding), onNavigate = { target ->
+                            showAssessments = target == DashboardDestination.ASSESSMENTS
+                            destination = when (target) {
+                                DashboardDestination.GRADES -> 1
+                                DashboardDestination.TIMETABLE -> 2
+                                DashboardDestination.ATTENDANCE -> 3
+                                DashboardDestination.ASSESSMENTS -> 4
+                            }
+                        })
                         else DemoSection(destination, state, theme, { mode ->
                             scope.launch {
                                 try { preferences.setTheme(mode) }
                                 catch (_: IOException) { snackbar.showSnackbar("Nie udało się zapisać motywu. Spróbuj ponownie.") }
                             }
-                        }, Modifier.padding(padding), onError = { message -> scope.launch { snackbar.showSnackbar(message) } })
+                        }, Modifier.padding(padding), onError = { message -> scope.launch { snackbar.showSnackbar(message) } }, showAssessments = showAssessments, onShowAssessments = { showAssessments = it })
                     }
                 }
             }

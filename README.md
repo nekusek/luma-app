@@ -5,7 +5,7 @@ Inspiracja lekkością Wulkanowego; niezależny projekt, bez afiliacji ze szkoł
 VULCAN ani autorami Wulkanowego. Kod napisany od podstaw, licencja MIT.
 Zielony akcent jest propozycją projektu, nie potwierdzoną identyfikacją szkoły.
 
-## Wersja demonstracyjna 0.1.1
+## Wersja demonstracyjna 0.1.2
 
 Kompilowalna aplikacja **wyłącznie demonstracyjna**: Pulpit Compose Material 3,
 Room, Hilt, coroutines/StateFlow, DataStore, Material You, dark/AMOLED.
@@ -57,7 +57,7 @@ targetSdk = 36, minSdk = 26. Otwórz projekt w aktualnym
 Android Studio albo ustaw `ANDROID_HOME`. Lokalne `local.properties` nie trafia do Git.
 
 ```bash
-./gradlew :core:model:test :feature:dashboard:testDebugUnitTest :app:lintDebug :app:assembleDebug
+./gradlew :core:model:test :feature:dashboard:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`. Zależności są przypięte w
@@ -128,8 +128,8 @@ migracji/instrumentacyjne, testy dostępności i pomiary startupu na urządzeniu
 
 ## Weryfikacja
 
-Weryfikacja 0.1.1 obejmuje `:core:model:test` (3 testy),
-`:feature:dashboard:testDebugUnitTest` (4 testy), `:app:assembleDebug`,
+Weryfikacja 0.1.2 obejmuje `:core:model:test` (3 testy),
+`:feature:dashboard:testDebugUnitTest` (4 testy), `:app:testDebugUnitTest` (3 testy UI), `:app:assembleDebug`,
 `:app:assembleRelease` z R8 oraz `:app:lintDebug`. Lint zgłasza ostrzeżenie
 o targetSdk 36 wobec najnowszego API 37. Aplikacja ma własną ikonę launchera.
 Zweryfikowano start Gradle Wrapper i podpis v2 APK debug przy użyciu apksigner.

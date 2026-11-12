@@ -22,20 +22,20 @@ private val timeFormat = DateTimeFormatter.ofPattern("HH:mm", polish).withZone(S
 private val dateFormat = DateTimeFormatter.ofPattern("EEEE, d MMMM", polish).withZone(SchoolZone)
 private fun Double.display() = String.format(polish, "%.1f", this)
 
+enum class DashboardDestination { GRADES, TIMETABLE, ATTENDANCE, ASSESSMENTS }
+
 @Composable
-fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier) {
+fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier, onNavigate: (DashboardDestination) -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
-    DashboardScreen(state.copy(now = now), viewModel::refresh, modifier)
+    DashboardScreen(state.copy(now = now), viewModel::refresh, modifier, onNavigate)
 }
 
 @Composable
-fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Modifier = Modifier) {
+fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Modifier = Modifier, onNavigate: (DashboardDestination) -> Unit = {}) {
     val data = state.snapshot
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
-            Text("ZSE / RZESZÓW", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontFamily = FontFamily.Monospace)
-            Spacer(Modifier.height(8.dp))
             Text("Pulpit", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
             Text(dateFormat.format(state.now).replaceFirstChar { it.titlecase(polish) }, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -54,7 +54,7 @@ fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Mo
         } else {
             val next = data.timetable.currentOrNextLesson(state.now)
             item {
-                Tile(if (next != null && next.startsAt <= state.now) "Teraz" else "Następna lekcja", emphasized = true) {
+                Tile(if (next != null && next.startsAt <= state.now) "Teraz" else "Następna lekcja", emphasized = true, onClick = { onNavigate(DashboardDestination.TIMETABLE) }) {
                     if (next == null) {
                         Text("Na dziś to wszystko", style = MaterialTheme.typography.headlineSmall)
                         Text("Brak kolejnych lekcji w zapisanym planie.")
@@ -73,11 +73,11 @@ fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Mo
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
-                    Tile("Frekwencja", Modifier.weight(1f).fillMaxHeight()) {
+                    Tile("Frekwencja", Modifier.weight(1f).fillMaxHeight(), onClick = { onNavigate(DashboardDestination.ATTENDANCE) }) {
                         Text(data.attendance.attendancePercent()?.let { "${it.display()}%" } ?: "—", style = MaterialTheme.typography.headlineMedium)
                         Text("Zapisane lekcje", style = MaterialTheme.typography.bodySmall)
                     }
-                    Tile("Dzisiaj", Modifier.weight(1f).fillMaxHeight()) {
+                    Tile("Dzisiaj", Modifier.weight(1f).fillMaxHeight(), onClick = { onNavigate(DashboardDestination.TIMETABLE) }) {
                         Text("${data.timetable.count { it.startsAt.atZone(SchoolZone).toLocalDate() == state.now.atZone(SchoolZone).toLocalDate() && it.status != LessonStatus.CANCELLED && it.status != LessonStatus.WINDOW }}", style = MaterialTheme.typography.headlineMedium)
                         Text("Aktywne lekcje", style = MaterialTheme.typography.bodySmall)
                     }
@@ -85,7 +85,7 @@ fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Mo
             }
             item { Text("Ostatnie oceny", style = MaterialTheme.typography.titleMedium) }
             items(data.grades.sortedByDescending { it.receivedOn }.take(3), key = { it.id }) { grade ->
-                Tile(grade.subjectName) {
+                Tile(grade.subjectName, onClick = { onNavigate(DashboardDestination.GRADES) }) {
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         val gradeColor = when {
                             grade.numericValue == null -> MaterialTheme.colorScheme.surfaceContainerHighest
@@ -105,7 +105,7 @@ fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Mo
                 }
             }
             item {
-                Tile("Najbliższy sprawdzian") {
+                Tile("Najbliższy sprawdzian", onClick = { onNavigate(DashboardDestination.ASSESSMENTS) }) {
                     val assessment = data.assessments.filter { it.date >= state.now.atZone(SchoolZone).toLocalDate() }.minByOrNull { it.date }
                     Text(assessment?.subject ?: "Brak zaplanowanych sprawdzianów", fontWeight = FontWeight.SemiBold)
                     assessment?.let { Text("${it.date} · ${it.title}") }
@@ -117,10 +117,13 @@ fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Mo
 }
 
 @Composable
-private fun Tile(title: String, modifier: Modifier = Modifier, emphasized: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
-    Card(modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if (emphasized) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)) {
+private fun Tile(title: String, modifier: Modifier = Modifier, emphasized: Boolean = false, onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+    Card(onClick = { onClick?.invoke() }, enabled = onClick != null, modifier = modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if (emphasized) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow)) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.labelLarge, color = if (emphasized) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(title, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                if (onClick != null) Text("›", style = MaterialTheme.typography.titleMedium)
+            }
             content()
         }
     }

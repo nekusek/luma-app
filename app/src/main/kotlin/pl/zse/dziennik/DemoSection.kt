@@ -19,7 +19,7 @@ import pl.zse.dziennik.model.*
 
 
 @Composable
-fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onTheme: (ThemeMode) -> Unit, modifier: Modifier = Modifier, onError: (String) -> Unit = {}) {
+fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onTheme: (ThemeMode) -> Unit, modifier: Modifier = Modifier, onError: (String) -> Unit = {}, showAssessments: Boolean = false, onShowAssessments: (Boolean) -> Unit = {}) {
     val data = state.snapshot
     val titles = listOf("Pulpit", "Oceny", "Plan lekcji", "Frekwencja", "Więcej")
     Column(modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -29,19 +29,26 @@ fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onT
         when (destination) {
             1 -> GradeViewer(data!!.grades)
             2 -> TimetableViewer(data!!.timetable, state.now.atZone(SchoolZone).toLocalDate())
-            3 -> {
-                Text(data!!.attendance.attendancePercent()?.let { "${it.format()}%" } ?: "Brak danych", style = MaterialTheme.typography.displaySmall)
-                Text("Spóźnienie liczone jako obecność; zwolnienie poza mianownikiem. Reguła demonstracyjna.")
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    data.attendance.groupBy { it.subjectId }.forEach { (subject, entries) -> item {
-                        Text("${data.grades.firstOrNull { it.subjectId == subject }?.subjectName ?: subject}: ${entries.attendancePercent()?.let { "${it.format()}%" } ?: "Brak danych"}")
-                    } }
-                    AttendanceStatus.entries.forEach { status -> item { Text("${status.label()}: ${data.attendance.count { it.status == status }}") } }
-                }
-            }
+            3 -> AttendanceScreen(data!!.attendance, data.grades, state.now.atZone(SchoolZone).toLocalDate(), Modifier.weight(1f))
             4 -> {
                 val uri = LocalUriHandler.current
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item { TextButton(onClick = { onShowAssessments(!showAssessments) }) { Text(if (showAssessments) "Ustawienia" else "Sprawdziany") } }
+                    if (showAssessments) {
+                        item { Text("Sprawdziany", style = MaterialTheme.typography.titleLarge) }
+                        val assessments = data?.assessments.orEmpty().sortedBy { it.date }
+                        if (assessments.isEmpty()) item { Text("Brak zapisanych sprawdzianów.") }
+                        assessments.forEach { assessment -> item(key = assessment.id) {
+                            OutlinedCard(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(assessment.subject, style = MaterialTheme.typography.titleMedium)
+                                    Text(assessment.title)
+                                    Text(assessment.date.format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.forLanguageTag("pl-PL"))))
+                                }
+                            }
+                        } }
+                        return@LazyColumn
+                    }
                     item { Text("Wygląd", style = MaterialTheme.typography.titleMedium) }
                     ThemeMode.entries.forEach { mode -> item {
                         Row { RadioButton(selected = theme == mode, onClick = { onTheme(mode) }); TextButton(onClick = { onTheme(mode) }) { Text(mode.label()) } }
