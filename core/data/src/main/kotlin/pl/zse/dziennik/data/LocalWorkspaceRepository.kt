@@ -5,6 +5,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.flow.*
 import pl.zse.dziennik.database.*
 import pl.zse.dziennik.model.*
@@ -49,7 +50,7 @@ class LocalWorkspaceRepository(private val database: WorkspaceDatabase, private 
         require(account(teacherId).role == AccountRole.TEACHER)
         val students = contacts.filter { it.role == AccountRole.STUDENT && it.className == className }
         require(students.isNotEmpty() && value.trim().length in 1..1000 && description.length <= 1000)
-        if (kind == TeachingKind.GRADE || kind == TeachingKind.ATTENDANCE) require(students.any { it.studentId == studentId })
+        if (kind == TeachingKind.GRADE || kind == TeachingKind.ATTENDANCE || kind == TeachingKind.POSITIVE_NOTE || kind == TeachingKind.NEGATIVE_NOTE) require(students.any { it.studentId == studentId })
         else require(studentId == null)
         if (kind == TeachingKind.GRADE) require(value.toIntOrNull() in 1..6 && weight in 1..5)
         if (kind == TeachingKind.ATTENDANCE) AttendanceStatus.valueOf(value)
@@ -63,12 +64,12 @@ class LocalWorkspaceRepository(private val database: WorkspaceDatabase, private 
 
 private fun TeachingEntity.toModel() = TeachingEntry(id, teacherId, studentId, className, TeachingKind.valueOf(kind), value, description, weight, LocalDate.ofEpochDay(date))
 
-class DemoSchoolRepository(private val cached: SchoolRepository, private val workspace: WorkspaceRepository) : SchoolRepository {
-    override fun observe(studentId: String): Flow<SchoolSnapshot?> = combine(cached.observe(studentId), workspace.studentEntries(studentId)) { snapshot, entries ->
+class DemoSchoolRepository(private val cached: SchoolRepository, private val workspace: WorkspaceRepository, private val featuresDao: DiaryFeaturesDao? = null) : SchoolRepository {
+    override fun observe(studentId: String): Flow<SchoolSnapshot?> = combine(cached.observe(studentId), workspace.studentEntries(studentId), featuresDao?.justifications(studentId) ?: flowOf(emptyList())) { snapshot, entries, requests ->
+        val accepted = requests.filter { it.status == JustificationStatus.ACCEPTED.name }.flatMap { Json.decodeFromString<List<String>>(it.attendanceIds) }.toSet()
         snapshot?.copy(
             grades = snapshot.grades + entries.filter { it.kind == TeachingKind.GRADE }.map { Grade("teacher:${it.id}", studentId, "programming", "Programowanie", it.value, it.value.toDouble(), it.weight, "Ocena nauczyciela demo", it.description, it.date) },
-            assessments = snapshot.assessments + entries.filter { it.kind == TeachingKind.HOMEWORK }.map { Assessment("teacher:${it.id}", "Programowanie · zadanie demo", it.value, it.date) },
-            attendance = snapshot.attendance + entries.filter { it.kind == TeachingKind.ATTENDANCE }.map { Attendance("teacher:${it.id}", studentId, "programming", it.date, AttendanceStatus.valueOf(it.value)) },
+            attendance = (snapshot.attendance + entries.filter { it.kind == TeachingKind.ATTENDANCE }.map { Attendance("teacher:${it.id}", studentId, "programming", it.date, AttendanceStatus.valueOf(it.value)) }).map { if (it.id in accepted && it.status == AttendanceStatus.ABSENT) it.copy(status = AttendanceStatus.EXCUSED_ABSENCE) else it },
         )
     }
     override suspend fun refresh(studentId: String) = cached.refresh(studentId)

@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var preferences: ThemePreferences
     @Inject lateinit var dashboardFactory: DashboardViewModelFactory
     @Inject lateinit var workspaceFactory: WorkspaceViewModelFactory
+    @Inject lateinit var featuresFactory: DiaryFeaturesViewModelFactory
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +53,8 @@ class MainActivity : ComponentActivity() {
             var handledLogin by rememberSaveable { mutableStateOf<String?>(null) }
             val session = accountState.session
             val active = session?.activeAccount
+            val widgetContext = androidx.compose.ui.platform.LocalContext.current
+            LaunchedEffect(session?.activeId) { LumaWidgetProvider.refresh(widgetContext) }
             LaunchedEffect(accountState.completedLogin, session?.activeId) {
                 accountState.completedLogin?.let { login ->
                     if (login.receiptId != handledLogin && login.accountId == session?.activeId) {
@@ -83,7 +86,7 @@ class MainActivity : ComponentActivity() {
                             { accounts.signIn(AuthenticationRequest.Demo(it)) }, if (active != null) ({ addingAccount = false }) else null)
                     } else {
                         key(active.id) {
-                            DiaryShell(active, dashboardFactory, workspaceFactory, theme, preferences, accountState.error, accounts::dismissError) { showingAccounts = true }
+                            DiaryShell(active, dashboardFactory, workspaceFactory, featuresFactory, theme, preferences, accountState.error, accounts::dismissError) { showingAccounts = true }
                         }
                         if (showingAccounts) AccountSheet(session, accountState.busy,
                             onSelect = { showingAccounts = false; accounts.activate(it) },
@@ -98,16 +101,19 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun DiaryShell(account: DiaryAccount, factory: DashboardViewModelFactory, workspaceFactory: WorkspaceViewModelFactory, theme: ThemeMode, preferences: ThemePreferences, accountError: String?, onErrorConsumed: () -> Unit, onAccounts: () -> Unit) {
+private fun DiaryShell(account: DiaryAccount, factory: DashboardViewModelFactory, workspaceFactory: WorkspaceViewModelFactory, featuresFactory: DiaryFeaturesViewModelFactory, theme: ThemeMode, preferences: ThemePreferences, accountError: String?, onErrorConsumed: () -> Unit, onAccounts: () -> Unit) {
     val store = remember(account.id) { ViewModelStore() }
     DisposableEffect(store) { onDispose { store.clear() } }
+    val context = androidx.compose.ui.platform.LocalContext.current
     val teacher = account.role == AccountRole.TEACHER
     val workspace = remember(account.id, store) { ViewModelProvider(store, viewModelFactory { initializer { workspaceFactory.create(account) } })[WorkspaceViewModel::class.java] }
+    val features = remember(account.id, store) { ViewModelProvider(store, viewModelFactory { initializer { featuresFactory.create(account) } })[DiaryFeaturesViewModel::class.java] }
+    val featureState by features.state.collectAsStateWithLifecycle()
     val workspaceState by workspace.state.collectAsStateWithLifecycle()
     val viewModel = remember(account.id, store) { if (teacher) null else ViewModelProvider(store, viewModelFactory { initializer { factory.create(account.studentId) } })[DashboardViewModel::class.java] }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_START) viewModel?.refresh() }
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_START) { viewModel?.refresh(); features.refresh() } }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
@@ -120,6 +126,9 @@ private fun DiaryShell(account: DiaryAccount, factory: DashboardViewModelFactory
     LaunchedEffect(accountError) {
         accountError?.let { snackbar.showSnackbar(it); onErrorConsumed() }
     }
+    LaunchedEffect(account.id, state.snapshot, featureState.data.luckyDate) { LumaWidgetProvider.refresh(context) }
+    LaunchedEffect(featureState.error) { featureState.error?.let { if (snackbar.showSnackbar(it, actionLabel = "Ponów") == SnackbarResult.ActionPerformed) features.refresh() } }
+    LaunchedEffect(featureState.notice) { featureState.notice?.let { snackbar.showSnackbar(it); features.dismissNotice() } }
     LaunchedEffect(workspaceState.notice) {
         workspaceState.notice?.let { snackbar.showSnackbar(it); workspace.dismissNotice() }
     }
@@ -131,31 +140,35 @@ private fun DiaryShell(account: DiaryAccount, factory: DashboardViewModelFactory
             val icons = listOf(R.drawable.ic_dashboard, R.drawable.ic_grades, R.drawable.ic_timetable, R.drawable.ic_messages, R.drawable.ic_more)
             titles.forEachIndexed { index, title ->
                 val target = destinations[index]
-                NavigationBarItem(selected = destination == target || (target == 4 && destination == 3), onClick = { destination = target; showAssessments = false },
+                NavigationBarItem(selected = destination == target || (target == 4 && destination in listOf(3, 6, 7, 8, 9)), onClick = { destination = target; showAssessments = false },
                     icon = { Icon(painterResource(icons[index]), contentDescription = null) }, label = { Text(title, maxLines = 1, style = MaterialTheme.typography.labelSmall) })
             }
         }
     }) { padding ->
         screens.SaveableStateProvider(destination) {
-            if (destination == 5) MessagesScreen(account, workspace.contacts, workspaceState, workspace::read, workspace::send, workspace::retry, workspace::clearError, Modifier.padding(padding))
-            else if (teacher && destination != 4) TeacherScreen(destination, workspace, workspaceState, { destination = it }, onAccounts, Modifier.padding(padding))
+            if (destination == 6) SchoolCalendarScreen(featureState.data, features.today, features::homework, Modifier.padding(padding), featureState.busy)
+            else if (destination == 7) SchoolNotesScreen(featureState.data.notes, Modifier.padding(padding))
+            else if (destination == 8) JustificationsScreen(account, state.snapshot?.attendance.orEmpty(), featureState, features::justify, features::decide, workspace.contacts, Modifier.padding(padding), state.snapshot?.grades?.associate { it.subjectId to it.subjectName }.orEmpty())
+            else if (destination == 9) DiarySettingsScreen(featureState, theme, { mode -> scope.launch { try { preferences.setTheme(mode) } catch (_: IOException) { snackbar.showSnackbar("Nie udało się zapisać motywu.") } } }, features::gradePolicy, features::readReceipts, features::sync, features::refreshAll, Modifier.padding(padding))
+            else if (destination == 5) MessagesScreen(account, workspace.contacts, workspaceState, workspace::read, workspace::send, workspace::retry, workspace::clearError, Modifier.padding(padding))
+            else if (teacher && destination != 4) TeacherScreen(destination, workspace, workspaceState, { destination = it }, onAccounts, Modifier.padding(padding), featureState.pending.size)
             else if (destination == 0) DashboardRoute(requireNotNull(viewModel), Modifier.padding(padding), onNavigate = { target ->
                 showAssessments = target == DashboardDestination.ASSESSMENTS
                 destination = when (target) {
                     DashboardDestination.GRADES -> 1
                     DashboardDestination.TIMETABLE -> 2
                     DashboardDestination.ATTENDANCE -> 3
-                    DashboardDestination.ASSESSMENTS -> 4
+                    DashboardDestination.ASSESSMENTS -> 6
                 }
             }, accountAction = {
                 IconButton(onClick = onAccounts) { Icon(painterResource(R.drawable.ic_switch_account), "Konta: ${account.displayName}") }
-            })
+            }, extraContent = { SchoolOverview(featureState.data, features.today) { destination = it } })
             else DemoSection(destination, state, theme, { mode ->
                 scope.launch {
                     try { preferences.setTheme(mode) }
                     catch (_: IOException) { snackbar.showSnackbar("Nie udało się zapisać motywu. Spróbuj ponownie.") }
                 }
-            }, Modifier.padding(padding), onError = { message -> scope.launch { snackbar.showSnackbar(message) } }, showAssessments = showAssessments, onShowAssessments = { showAssessments = it }, onAccounts = onAccounts, onAttendance = if (!teacher) ({ destination = 3 }) else null)
+            }, Modifier.padding(padding), onError = { message -> scope.launch { snackbar.showSnackbar(message) } }, showAssessments = showAssessments, onShowAssessments = { showAssessments = it }, onAccounts = onAccounts, onAttendance = if (!teacher) ({ destination = 3 }) else null, features = featureState.data, options = featureState.options, onOpenSection = { destination = it })
         }
     }
 }

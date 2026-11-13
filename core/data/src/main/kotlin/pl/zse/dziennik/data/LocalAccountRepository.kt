@@ -49,16 +49,18 @@ class LocalAccountRepository internal constructor(private val store: DataStore<P
 
     override suspend fun remove(accountId: String) = mutex.withLock {
         var removed: DiaryAccount? = null
+        var clearCache = false
         store.edit { prefs ->
             val current = decode(prefs[key])
             removed = current.accounts.firstOrNull { it.id == accountId }
             val remaining = current.accounts.filterNot { it.id == accountId }
+            clearCache = removed?.let { removed -> remaining.none { it.studentId == removed.studentId } } ?: false
             val activeId = if (current.activeId == accountId) remaining.firstOrNull()?.id else current.activeId
             prefs[key] = encode(AccountSession(remaining, activeId))
         }
         removed?.let { account ->
             try { registry[account.providerId]?.signOut(account) }
-            finally { clearStudent(account.studentId) }
+            finally { if (clearCache) clearStudent(account.studentId) }
         }
         Unit
     }

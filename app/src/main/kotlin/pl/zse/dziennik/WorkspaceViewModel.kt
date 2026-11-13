@@ -9,10 +9,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import pl.zse.dziennik.model.*
+import pl.zse.dziennik.data.DiaryPreferences
 
 data class WorkspaceUiState(val messages: List<DiaryMessage> = emptyList(), val entries: List<TeachingEntry> = emptyList(), val loading: Boolean = true, val busy: Boolean = false, val error: String? = null, val notice: String? = null, val sentReceipt: String? = null)
 
-class WorkspaceViewModel(private val repository: WorkspaceRepository, val account: DiaryAccount, clock: Clock) : ViewModel() {
+class WorkspaceViewModel(private val repository: WorkspaceRepository, val account: DiaryAccount, clock: Clock, private val preferences: DiaryPreferences? = null) : ViewModel() {
     val contacts get() = repository.contacts
     val today: LocalDate = LocalDate.now(clock.withZone(SchoolZone))
     private val busy = MutableStateFlow(false)
@@ -35,7 +36,7 @@ class WorkspaceViewModel(private val repository: WorkspaceRepository, val accoun
     fun retry() { error.value = null; retry.value++ }
     fun dismissNotice() { notice.value = null }
     fun clearError() { error.value = null }
-    fun read(id: String) = operation(null) { repository.markRead(account.id, id) }
+    fun read(id: String) = operation(null) { if (preferences?.options?.first()?.readReceipts != false) repository.markRead(account.id, id) }
     fun send(recipientId: String, subject: String, body: String, onSuccess: () -> Unit) = operation("Wiadomość dostarczona lokalnie w demo.") {
         repository.send(account.id, recipientId, subject, body)
         sentReceipt.value = java.util.UUID.randomUUID().toString()
@@ -57,6 +58,6 @@ class WorkspaceViewModel(private val repository: WorkspaceRepository, val accoun
     }
 }
 
-class WorkspaceViewModelFactory @Inject constructor(private val repository: WorkspaceRepository, private val clock: Clock) {
-    fun create(account: DiaryAccount) = WorkspaceViewModel(repository, account, clock)
+class WorkspaceViewModelFactory @Inject constructor(private val repository: WorkspaceRepository, private val clock: Clock, private val preferences: DiaryPreferences) {
+    fun create(account: DiaryAccount) = WorkspaceViewModel(repository, account, clock, preferences)
 }

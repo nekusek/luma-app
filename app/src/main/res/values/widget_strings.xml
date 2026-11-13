@@ -1,0 +1,5 @@
+<resources>
+    <string name="widget_title">Luma · demo</string>
+    <string name="widget_start">Otwórz Lumę, aby wczytać dane.</string>
+    <string name="widget_demo">DEMO · dane lokalne</string>
+</resources>

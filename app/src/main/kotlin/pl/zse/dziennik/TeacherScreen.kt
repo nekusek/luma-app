@@ -11,7 +11,7 @@ import java.time.LocalDate
 import pl.zse.dziennik.model.*
 
 @Composable
-fun TeacherScreen(destination: Int, viewModel: WorkspaceViewModel, state: WorkspaceUiState, onNavigate: (Int) -> Unit, onAccounts: () -> Unit, modifier: Modifier = Modifier) {
+fun TeacherScreen(destination: Int, viewModel: WorkspaceViewModel, state: WorkspaceUiState, onNavigate: (Int) -> Unit, onAccounts: () -> Unit, modifier: Modifier = Modifier, pendingCount: Int = 0) {
     val students = viewModel.contacts.filter { it.role == AccountRole.STUDENT }
     val classes = students.map { it.className }.distinct()
     var chosenClass by rememberSaveable { mutableStateOf(classes.first()) }
@@ -21,6 +21,8 @@ fun TeacherScreen(destination: Int, viewModel: WorkspaceViewModel, state: Worksp
     var grade by rememberSaveable { mutableIntStateOf(5) }
     var weight by rememberSaveable { mutableIntStateOf(1) }
     var description by rememberSaveable { mutableStateOf("") }
+    var note by rememberSaveable { mutableStateOf("") }
+    var positive by rememberSaveable { mutableStateOf(true) }
     var topic by rememberSaveable { mutableStateOf("") }
     var homework by rememberSaveable { mutableStateOf("") }
     var due by rememberSaveable { mutableStateOf(viewModel.today.plusDays(1).toString()) }
@@ -38,6 +40,7 @@ fun TeacherScreen(destination: Int, viewModel: WorkspaceViewModel, state: Worksp
         if (destination == 0) {
             item { TeacherCard("Dziennik klas", "Obecności, oceny, tematy lekcji i zadania", { onNavigate(1) }) }
             item { TeacherCard("Wiadomości", "Nieprzeczytane: ${state.messages.count { it.recipientId == viewModel.account.id && !it.read }}", { onNavigate(5) }) }
+            item { TeacherCard("Usprawiedliwienia", "Do rozpatrzenia: $pendingCount", { onNavigate(8) }) }
             item { TeacherCard("Plan zajęć", "Dwie przykładowe grupy laboratoryjne", { onNavigate(2) }) }
             item { Text("Wpisy nauczyciela: ${state.entries.size}", style = MaterialTheme.typography.titleMedium) }
         }
@@ -68,6 +71,13 @@ fun TeacherScreen(destination: Int, viewModel: WorkspaceViewModel, state: Worksp
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { (1..5).forEach { value -> FilterChip(selected = weight == value, onClick = { weight = value }, label = { Text("Waga $value") }) } }
                 OutlinedTextField(description, { description = it.take(1000) }, Modifier.fillMaxWidth(), label = { Text("Opis oceny") }, enabled = !state.busy)
                 Button(onClick = { viewModel.save(student.studentId, chosenClass, TeachingKind.GRADE, grade.toString(), description, weight, onSuccess = { description = "" }) }, enabled = !state.busy && description.isNotBlank()) { Text("Zapisz ocenę demo") }
+            }
+            item {
+                Text("Uwaga lub pochwała", style = MaterialTheme.typography.titleLarge)
+                Text("Dla: ${student.displayName}")
+                Row { FilterChip(selected = positive, onClick = { positive = true }, label = { Text("Pochwała") }); Spacer(Modifier.width(8.dp)); FilterChip(selected = !positive, onClick = { positive = false }, label = { Text("Uwaga") }) }
+                OutlinedTextField(note, { note = it.take(1000) }, Modifier.fillMaxWidth(), label = { Text("Treść uwagi lub pochwały") }, enabled = !state.busy)
+                Button(onClick = { viewModel.save(student.studentId, chosenClass, if (positive) TeachingKind.POSITIVE_NOTE else TeachingKind.NEGATIVE_NOTE, note, onSuccess = { note = "" }) }, enabled = !state.busy && note.isNotBlank()) { Text("Zapisz wpis demo") }
             }
             item {
                 Text("Temat lekcji", style = MaterialTheme.typography.titleLarge)
@@ -101,4 +111,4 @@ fun TeacherScreen(destination: Int, viewModel: WorkspaceViewModel, state: Worksp
 @Composable
 private fun TeacherCard(title: String, description: String, onClick: () -> Unit) { OutlinedCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { Text(title, style = MaterialTheme.typography.titleLarge); Text(description) } } }
 private fun AttendanceStatus.teacherLabel() = when (this) { AttendanceStatus.PRESENT -> "Obecność"; AttendanceStatus.LATE -> "Spóźnienie"; AttendanceStatus.ABSENT -> "Nieobecność"; AttendanceStatus.EXCUSED_ABSENCE -> "Usprawiedliwiona"; AttendanceStatus.RELEASED -> "Zwolnienie" }
-private fun TeachingKind.teacherLabel() = when (this) { TeachingKind.GRADE -> "Ocena"; TeachingKind.ATTENDANCE -> "Frekwencja"; TeachingKind.TOPIC -> "Temat"; TeachingKind.HOMEWORK -> "Zadanie" }
+private fun TeachingKind.teacherLabel() = when (this) { TeachingKind.GRADE -> "Ocena"; TeachingKind.ATTENDANCE -> "Frekwencja"; TeachingKind.TOPIC -> "Temat"; TeachingKind.HOMEWORK -> "Zadanie"; TeachingKind.POSITIVE_NOTE -> "Pochwała"; TeachingKind.NEGATIVE_NOTE -> "Uwaga" }

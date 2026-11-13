@@ -87,6 +87,17 @@ class LocalAccountRepositoryTest {
         assertEquals(2, restored.session.first().accounts.size)
     }
 
+    @Test fun removingOneProfileDoesNotDeleteCacheSharedWithAParent() = runBlocking {
+        val parent = DemoProfiles.accounts.first { it.role == AccountRole.PARENT }
+        repository.signIn(AuthenticationRequest.Demo(anna.id))
+        cache.refresh(anna.studentId)
+        repository.signIn(AuthenticationRequest.Demo(parent.id))
+        repository.remove(parent.id)
+        assertNotNull(cache.observe(anna.studentId).first())
+        repository.remove(anna.id)
+        assertNull(cache.observe(anna.studentId).first())
+    }
+
     @Test fun unknownAccountCannotReplaceTheActiveAccount() = runBlocking {
         repository.signIn(AuthenticationRequest.Demo(anna.id))
         assertTrue(runCatching { repository.activate("missing") }.exceptionOrNull() is IllegalArgumentException)

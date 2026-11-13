@@ -25,7 +25,10 @@ object AppModule {
     @Provides @Singleton fun workspaceDatabase(@ApplicationContext context: Context): WorkspaceDatabase =
         Room.databaseBuilder(context, WorkspaceDatabase::class.java, "luma-workspace-demo.db").build()
     @Provides @Singleton fun workspace(database: WorkspaceDatabase, clock: Clock): WorkspaceRepository = LocalWorkspaceRepository(database, clock)
-    @Provides fun repository(cached: CachedSchoolRepository, workspace: WorkspaceRepository): SchoolRepository = DemoSchoolRepository(cached, workspace)
+    @Provides fun repository(cached: CachedSchoolRepository, workspace: WorkspaceRepository, database: WorkspaceDatabase): SchoolRepository = DemoSchoolRepository(cached, workspace, database.featuresDao())
+    @Provides @Singleton fun featuresSource(clock: Clock): DiaryFeaturesSource = MockDiaryFeaturesSource(clock)
+    @Provides @Singleton fun features(database: WorkspaceDatabase, source: DiaryFeaturesSource, school: SchoolRepository, workspace: WorkspaceRepository, clock: Clock): DiaryFeaturesRepository = LocalDiaryFeaturesRepository(database, source, school, workspace, clock)
+    @Provides @Singleton fun diaryPreferences(@ApplicationContext context: Context): DiaryPreferences = DiaryPreferences(context)
     @Provides @Singleton fun preferences(@ApplicationContext context: Context): ThemePreferences = ThemePreferences(context)
     @Provides @Singleton fun accounts(@ApplicationContext context: Context, cached: CachedSchoolRepository): AccountRepository =
         LocalAccountRepository(context, listOf(DemoAuthenticationProvider()), cached::clearStudent)

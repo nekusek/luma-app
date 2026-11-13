@@ -32,8 +32,10 @@ class MockDataRepository(private val clock: Clock) : SnapshotSource {
                 lesson("t5", 5, "Elektronika", 10, 45, "L08", LessonStatus.SUBSTITUTION, "1/2"),
                 lesson("t6", 6, "Język angielski", 11, 40, "103", LessonStatus.CANCELLED),
                 lesson("t7", 7, "Systemy operacyjne", 12, 35, "L14", group = "1/2"),
-            ),
-            attendance = (1..30).map { Attendance("a$it", studentId, "programming", today.minusDays(it.toLong()), when (it) { 5 -> AttendanceStatus.LATE; 10 -> AttendanceStatus.ABSENT; 20 -> AttendanceStatus.EXCUSED_ABSENCE; else -> AttendanceStatus.PRESENT }) },
+            ).let { base -> base + (-7L..7L).filter { it != 0L && today.plusDays(it).dayOfWeek.value <= 5 }.flatMap { offset -> base.map { lesson ->
+                lesson.copy(id = "${lesson.id}:$offset", startsAt = lesson.startsAt.atZone(SchoolZone).plusDays(offset).toInstant(), endsAt = lesson.endsAt.atZone(SchoolZone).plusDays(offset).toInstant())
+            } } },
+            attendance = (1..30).map { Attendance("a${today.minusDays(it.toLong())}", studentId, "programming", today.minusDays(it.toLong()), when (it) { 5 -> AttendanceStatus.LATE; 10 -> AttendanceStatus.ABSENT; 20 -> AttendanceStatus.EXCUSED_ABSENCE; else -> AttendanceStatus.PRESENT }) },
             assessments = listOf(Assessment("e1", "Systemy operacyjne", "Procesy i wątki", today.plusDays(2))),
             syncedAt = clock.instant(),
         )

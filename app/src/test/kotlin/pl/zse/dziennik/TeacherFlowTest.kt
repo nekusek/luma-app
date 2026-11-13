@@ -14,13 +14,15 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [35], qualifiers = "w360dp-h800dp-xhdpi", application = ZseApplication::class)
 class TeacherFlowTest {
-    @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    @get:Rule(order = 0) val accountsIsolation = AccountsIsolationRule()
+    @get:Rule(order = 1) val compose = createAndroidComposeRule<MainActivity>()
     private fun waitText(text: String) { compose.waitUntil(30_000) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() } }
     private fun waitAccount(name: String) { compose.waitUntil(30_000) { compose.onAllNodesWithContentDescription("Konta: $name").fetchSemanticsNodes().isNotEmpty() } }
 
     @Test fun studentMessagesReachTeacherAndTeacherGradesReachStudent() {
-        waitText("Kontynuuj w trybie demo")
-        compose.onNodeWithText("Kontynuuj w trybie demo").performScrollTo().performClick()
+        waitText("Anna Kowalska")
+        compose.onAllNodes(hasScrollAction()).onFirst().performScrollToNode(hasText("Kontynuuj w trybie demo"))
+        compose.onNodeWithText("Kontynuuj w trybie demo").performClick()
         waitAccount("Anna Kowalska")
         compose.onNodeWithText("Wiadomości").performClick()
         compose.onNodeWithContentDescription("Napisz wiadomość").performClick()

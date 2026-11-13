@@ -25,14 +25,16 @@ private fun LocalDate.schoolYear() = year - if (monthValue < 9) 1 else 0
 private fun Double.gradeFormat() = String.format(Locale.forLanguageTag("pl-PL"), "%.2f", this)
 
 @Composable
-fun GradesScreen(grades: List<Grade>, today: LocalDate, studentName: String, onAccounts: () -> Unit, modifier: Modifier = Modifier) {
-    val years = (grades.map { it.receivedOn.schoolYear() } + today.schoolYear()).distinct().sorted()
+fun GradesScreen(grades: List<Grade>, today: LocalDate, studentName: String, onAccounts: () -> Unit, modifier: Modifier = Modifier, features: DiaryFeatures = DiaryFeatures(), policy: GradePolicy = GradePolicy()) {
+    val years = (grades.map { it.receivedOn.schoolYear() } + features.classification.map { it.schoolYear } + today.schoolYear()).distinct().sorted()
     var selectedYear by rememberSaveable { mutableIntStateOf(today.schoolYear()) }
     val year = selectedYear.takeIf { it in years } ?: years.last()
     val index = years.indexOf(year)
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var selectedSubject by rememberSaveable { mutableStateOf<String?>(null) }
-    val groups = grades.filter { it.receivedOn.schoolYear() == year }.groupBy { it.subjectId }.values.sortedBy { it.first().subjectName.lowercase(Locale.forLanguageTag("pl-PL")) }
+    var periodId by rememberSaveable { mutableStateOf<String?>(null) }
+    val period = features.periods.firstOrNull { it.id == periodId && it.schoolYear == year }
+    val groups = grades.filter { it.receivedOn.schoolYear() == year && (period == null || it.receivedOn in period.startsOn..period.endsOn) }.groupBy { it.subjectId }.values.sortedBy { it.first().subjectName.lowercase(Locale.forLanguageTag("pl-PL")) }
     Column(modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Spacer(Modifier.size(44.dp))
@@ -56,11 +58,26 @@ fun GradesScreen(grades: List<Grade>, today: LocalDate, studentName: String, onA
                 IconButton(onClick = { selectedYear = years[index + 1]; selectedSubject = null }, enabled = index < years.lastIndex) { Icon(painterResource(R.drawable.ic_chevron_right), "Następny rok szkolny") }
             }
         }
+        val periods = features.periods.filter { it.schoolYear == year }.sortedBy { it.number }
+        if (tab == 0 && periods.isNotEmpty()) FlowRow(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = period == null, onClick = { periodId = null }, label = { Text("Cały rok") })
+            periods.forEach { item -> FilterChip(selected = period?.id == item.id, onClick = { periodId = item.id; selectedSubject = null }, label = { Text("Semestr ${item.number}") }) }
+        }
         if (tab == 1) {
-            Text("Oceny śródroczne nie są dostępne w danych demo.", Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val classification = features.classification.filter { it.schoolYear == year }
+            LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (classification.isEmpty()) item { Text("Oceny śródroczne nie są dostępne w danych demo.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                items(classification, key = { it.id }) { entry -> OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(entry.subject, style = MaterialTheme.typography.titleLarge)
+                    Text("Przewidywana: ${entry.predicted ?: "—"}")
+                    Text("Śródroczna: ${entry.midyear ?: "—"}")
+                    Text("Roczna: ${entry.annual ?: "—"}")
+                } } }
+                item { Text("Wartości ze źródła demo, nie prognoza wyliczona ze średniej. Daty semestrów są przykładowe.", style = MaterialTheme.typography.bodySmall) }
+            }
         } else {
             LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(bottom = 24.dp)) {
-                if (groups.isEmpty()) item { Text("Nie ma jeszcze ocen w tym roku szkolnym.", Modifier.padding(24.dp)) }
+                if (groups.isEmpty()) item { Text(if (period == null) "Nie ma jeszcze ocen w tym roku szkolnym." else "Nie ma jeszcze ocen w wybranym semestrze.", Modifier.padding(24.dp)) }
                 items(groups, key = { it.first().subjectId }) { entries ->
                     Surface(onClick = { selectedSubject = entries.first().subjectId }, color = MaterialTheme.colorScheme.background) {
                         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -70,7 +87,7 @@ fun GradesScreen(grades: List<Grade>, today: LocalDate, studentName: String, onA
                                     entries.sortedBy { it.receivedOn }.forEach { Text(it.displayValue, color = gradeColor(it), style = MaterialTheme.typography.titleLarge) }
                                 }
                             }
-                            Text(entries.weightedAverage()?.gradeFormat() ?: "—", style = MaterialTheme.typography.titleMedium)
+                            Text(entries.weightedAverage(policy)?.gradeFormat() ?: "—", style = MaterialTheme.typography.titleMedium)
                             Icon(painterResource(R.drawable.ic_chevron_right), "Szczegóły: ${entries.first().subjectName}", Modifier.size(28.dp))
                         }
                     }
@@ -81,13 +98,14 @@ fun GradesScreen(grades: List<Grade>, today: LocalDate, studentName: String, onA
         }
     }
     groups.firstOrNull { it.first().subjectId == selectedSubject }?.let { entries ->
-        GradeDetails(entries, onDismiss = { selectedSubject = null })
+        GradeDetails(entries, onDismiss = { selectedSubject = null }, policy = policy)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun GradeDetails(entries: List<Grade>, onDismiss: () -> Unit) {
+private fun GradeDetails(entries: List<Grade>, onDismiss: () -> Unit, policy: GradePolicy) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var simulate by rememberSaveable(entries.first().subjectId) { mutableStateOf(false) }
     var value by rememberSaveable(entries.first().subjectId) { mutableFloatStateOf(5f) }
     var weight by rememberSaveable(entries.first().subjectId) { mutableFloatStateOf(2f) }
@@ -99,7 +117,7 @@ private fun GradeDetails(entries: List<Grade>, onDismiss: () -> Unit) {
                     FilledTonalIconButton(onClick = onDismiss, shape = CircleShape) { Icon(painterResource(R.drawable.ic_close), "Zamknij szczegóły ocen") }
                 }
                 Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                    GradeMetric("ŚREDNIA", entries.weightedAverage()?.gradeFormat() ?: "—")
+                    GradeMetric("ŚREDNIA", entries.weightedAverage(policy)?.gradeFormat() ?: "—")
                     VerticalDivider(Modifier.height(44.dp))
                     GradeMetric("LICZBA OCEN", entries.size.toString())
                 }
@@ -118,13 +136,18 @@ private fun GradeDetails(entries: List<Grade>, onDismiss: () -> Unit) {
             }
             item {
                 Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = {
+                        val text = "Luma · ${entries.first().subjectName}\nOceny: ${entries.joinToString { it.displayValue }}\nŚrednia lokalna: ${entries.weightedAverage(policy)?.gradeFormat() ?: "—"}\nDane demonstracyjne"
+                        try { context.startActivity(android.content.Intent.createChooser(android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, text), "Udostępnij oceny")) }
+                        catch (_: android.content.ActivityNotFoundException) { android.widget.Toast.makeText(context, "Brak aplikacji do udostępniania.", android.widget.Toast.LENGTH_SHORT).show() }
+                    }) { Text("Udostępnij podsumowanie") }
                     TextButton(onClick = { simulate = !simulate }) { Text(if (simulate) "Ukryj symulator" else "Symulator średniej") }
                     if (simulate) {
                         Text("Ocena ${value.toInt()} · waga ${weight.toInt()}")
                         Slider(value = value, onValueChange = { value = it }, valueRange = 1f..6f, steps = 4)
                         Slider(value = weight, onValueChange = { weight = it }, valueRange = 1f..5f, steps = 3)
-                        val simulated = entries + entries.first().copy(id = "simulation", numericValue = value.toInt().toDouble(), weight = weight.toInt(), countsTowardsAverage = true)
-                        Text("Po dodaniu: ${simulated.weightedAverage()?.gradeFormat()}", style = MaterialTheme.typography.titleMedium)
+                        val simulated = entries + entries.first().copy(id = "simulation", displayValue = value.toInt().toString(), numericValue = value.toInt().toDouble(), weight = weight.toInt(), countsTowardsAverage = true)
+                        Text("Po dodaniu: ${simulated.weightedAverage(policy)?.gradeFormat()}", style = MaterialTheme.typography.titleMedium)
                         Text("Symulacja nie zmienia zapisanych ocen.", style = MaterialTheme.typography.bodySmall)
                     }
                 }

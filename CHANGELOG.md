@@ -1,5 +1,19 @@
 # Luma
 
+## 0.2.0 — 2026-11-13
+
+- Analiza repozytorium Vulcanova i udokumentowanie pokrycia funkcji.
+- Kalendarz sprawdzianów i zadań ze szczegółami, lokalnym materiałem i oznaczaniem wykonania.
+- Uwagi, pochwały, filtry i punkty oraz wpisy dodawane przez nauczyciela demo.
+- Szczęśliwy numerek z datą i numerem ucznia na Pulpicie.
+- Okresy demo i klasyfikacja: przewidywane, śródroczne i roczne wartości ze źródła.
+- Ustawienia plusów/minusów, potwierdzeń odczytu i odświeżania przez WorkManager.
+- Profil rodzica Anny oraz lokalny przepływ wniosków o usprawiedliwienie z decyzją nauczyciela.
+- Szczegóły lekcji i wielodniowy plan demo z odwołaniami, okienkami i zastępstwami.
+- Widget Androida z następną lekcją i numerkiem, udostępnianie tekstowego podsumowania ocen.
+- Migracja WorkspaceDatabase 1 → 2 bez usuwania wiadomości.
+- Rozszerzone testy danych, uprawnień demo, migracji i UI.
+
 ## 0.1.5 — 2026-11-13
 
 - Zakładka Wiadomości: odebrane, wysłane, odczyt, odpowiedzi i lokalna wysyłka do profili demo.

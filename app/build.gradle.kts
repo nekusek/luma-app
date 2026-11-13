@@ -13,8 +13,8 @@ android {
         applicationId = "pl.zse.dziennik"
         minSdk = 26
         targetSdk = 36
-        versionCode = providers.gradleProperty("appVersionCode").orElse("6").get().toInt()
-        versionName = providers.gradleProperty("appVersionName").orElse("0.1.5").get()
+        versionCode = providers.gradleProperty("appVersionCode").orElse("7").get().toInt()
+        versionName = providers.gradleProperty("appVersionName").orElse("0.2.0").get()
     }
     buildFeatures { compose = true }
     testOptions { unitTests.isIncludeAndroidResources = true }
@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.lifecycle.compose)
     implementation(libs.lifecycle.viewmodel)
+    implementation(libs.work)
     implementation(libs.room.runtime)
     implementation(libs.coroutines.core)
     implementation(libs.hilt.android)

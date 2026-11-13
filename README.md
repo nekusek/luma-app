@@ -5,7 +5,7 @@ Inspiracja lekkością Wulkanowego; niezależny projekt, bez afiliacji ze szkoł
 VULCAN ani autorami Wulkanowego. Kod napisany od podstaw, licencja MIT.
 Zielony akcent jest propozycją projektu, nie potwierdzoną identyfikacją szkoły.
 
-## Wersja demonstracyjna 0.1.5
+## Wersja demonstracyjna 0.2.0
 
 Kompilowalna aplikacja **wyłącznie demonstracyjna**: Pulpit Compose Material 3,
 Room, Hilt, coroutines/StateFlow, DataStore, Material You, dark/AMOLED.
@@ -13,6 +13,21 @@ Pięć zakładek zawiera działające podglądy fikcyjnych danych. Oceny mają p
 symulator średniej, plan HorizontalPager, frekwencja zestawienie, Więcej ustawienia
 motywu i link do strony szkoły. Przed pierwszym zasileniem bazy pokazuje pusty stan.
 Nie ma produkcyjnego logowania, pobierania danych ani wysyłania wiadomości i usprawiedliwień do eduVULCAN. Skrzynka wiadomości działa lokalnie w demo.
+
+## Funkcje inspirowane Vulcanovą
+
+Analiza źródła i tabela pokrycia: [docs/VULCANOVA_REVIEW.md](docs/VULCANOVA_REVIEW.md).
+Wersja 0.2.0 dodaje kalendarz, oddzielne listy sprawdzianów i zadań, lokalne
+wykonanie prac, uwagi i pochwały z punktami, szczęśliwy numerek, semestry,
+klasyfikację oraz usprawiedliwienia rodzica zatwierdzane przez nauczyciela demo.
+Nowy profil rodzica dotyczy Anny. Konta korzystają ze wspólnego cache ucznia;
+usunięcie jednego profilu nie kasuje cache używanego jeszcze przez drugi.
+
+Ustawienia pozwalają sterować modyfikatorami ocen, odczytami wiadomości i
+harmonogramem WorkManager (wyłączony / 15 min / 1 h / 4 h / 24 h, opcja sieci
+bez limitu). Widget launchera pokazuje najbliższą lekcję z cache i numerek z datą.
+Okresowe odświeżanie dotyczy lokalnego demo; nie ma aktywnego połączenia z eduVULCAN.
+Po aktualizacji Room migruje bazę WorkspaceDatabase z 1 do 2, zachowując wiadomości.
 
 ## Wiadomości i nauczyciel demo
 
@@ -48,13 +63,15 @@ Dotknięcie przedmiotu otwiera dolny panel ze średnią, liczbą wpisów, opisam
 kategoriami, wagami i datami. Symulator jest dostępny w panelu i nie zapisuje zmian.
 Kolory wskazują wartości ocen; wpisy nieliczbowe i oceny o wadze zero nie wpływają na średnią.
 
-Selektor filtruje dane po roku szkolnym (granica 1 września), bez zgadywania dat
-semestrów. Źródło demo nie dostarcza ocen śródrocznych; osobna zakładka pokazuje
-komunikat o ich niedostępności. Nie wyliczamy ocen klasyfikacyjnych ze średnich.
+Selektor filtruje dane po roku szkolnym i jawnych okresach ze źródła. Daty
+semestrów są przykładami demo. Zakładka śródroczna pokazuje przewidywane,
+śródroczne i roczne wartości ze źródła, z kreską tam, gdzie brak oceny.
+Nie wyliczamy ocen klasyfikacyjnych ze średnich. Opcjonalna polityka wartości
+plusa i minusa wpływa wyłącznie na lokalne średnie.
 
 ## Konta i logowanie demo
 
-Pierwszy start otwiera ekran logowania z trzema fikcyjnymi profilami: dwoje uczniów i nauczyciel Piotr Wiśniewski.
+Pierwszy start otwiera ekran logowania z czterema fikcyjnymi profilami: dwoje uczniów, rodzic Maria Kowalska i nauczyciel Piotr Wiśniewski.
 Przełącznik kont znajduje się na Pulpicie oraz w sekcji Więcej → Konta i profile.
 Można dodać drugi profil, przełączyć aktywny oraz usunąć konto z urządzenia.
 Lista kont i aktywny profil przetrwają ponowne uruchomienie. Dane Room są rozdzielone
@@ -182,13 +199,15 @@ migracji/instrumentacyjne, testy dostępności i pomiary startupu na urządzeniu
 
 ## Weryfikacja
 
-Weryfikacja 0.1.5 obejmuje `:core:model:test` (3 testy),
-`:core:data:testDebugUnitTest` (11 testów),
-`:feature:dashboard:testDebugUnitTest` (4 testy), `:app:testDebugUnitTest` (14 testów),
+Weryfikacja 0.2.0 obejmuje `:core:model:test` (5 testów),
+`:core:data:testDebugUnitTest` (17 testów),
+`:feature:dashboard:testDebugUnitTest` (4 testy), `:app:testDebugUnitTest` (21 testów),
 `:app:assembleDebug` oraz `:app:lintDebug`.
 Testy obejmują pełny przepływ logowania, dodawania, przełączania i usuwania kont,
 trwałość wyboru profilu, izolację cache i usuwanie podczas odświeżania.
 Widok ocen ma testy szczegółów, symulatora, granicy roku szkolnego i pustych stanów.
+Nowe testy obejmują semestry, klasyfikację, kalendarz, uwagi, zadania, przepływ
+rodzic–nauczyciel, migrację 1 → 2, wspólny cache, WorkManager i widget.
 Testy wiadomości obejmują dostarczenie, odczyt, walidację i trwałość Room.
 Test całej aplikacji sprawdza wiadomość ucznia odebraną przez nauczyciela oraz
 ocenę nauczyciela widoczną u ucznia.

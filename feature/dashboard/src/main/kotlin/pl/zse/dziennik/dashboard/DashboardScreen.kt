@@ -25,14 +25,14 @@ private fun Double.display() = String.format(polish, "%.1f", this)
 enum class DashboardDestination { GRADES, TIMETABLE, ATTENDANCE, ASSESSMENTS }
 
 @Composable
-fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier, onNavigate: (DashboardDestination) -> Unit = {}, accountAction: @Composable () -> Unit = {}) {
+fun DashboardRoute(viewModel: DashboardViewModel, modifier: Modifier = Modifier, onNavigate: (DashboardDestination) -> Unit = {}, accountAction: @Composable () -> Unit = {}, extraContent: @Composable () -> Unit = {}) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val now by viewModel.now.collectAsStateWithLifecycle()
-    DashboardScreen(state.copy(now = now), viewModel::refresh, modifier, onNavigate, accountAction)
+    DashboardScreen(state.copy(now = now), viewModel::refresh, modifier, onNavigate, accountAction, extraContent)
 }
 
 @Composable
-fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Modifier = Modifier, onNavigate: (DashboardDestination) -> Unit = {}, accountAction: @Composable () -> Unit = {}) {
+fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Modifier = Modifier, onNavigate: (DashboardDestination) -> Unit = {}, accountAction: @Composable () -> Unit = {}, extraContent: @Composable () -> Unit = {}) {
     val data = state.snapshot
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
@@ -51,6 +51,7 @@ fun DashboardScreen(state: DashboardUiState, onRefresh: () -> Unit, modifier: Mo
                 Text("TRYB DEMO · fikcyjne dane", Modifier.padding(horizontal = 12.dp, vertical = 8.dp), style = MaterialTheme.typography.labelMedium)
             }
         }
+        item { extraContent() }
         state.error?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
         if (data == null) {
             item { Tile("Dane lokalne") { Text(if (state.refreshing) "Przygotowywanie pierwszego zestawu…" else "Nie ma jeszcze danych. Wybierz Odśwież.") } }

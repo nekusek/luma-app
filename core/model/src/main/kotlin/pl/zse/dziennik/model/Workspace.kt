@@ -5,7 +5,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 data class DiaryMessage(val id: String, val senderId: String, val recipientId: String, val subject: String, val body: String, val sentAt: Instant, val read: Boolean)
-enum class TeachingKind { GRADE, ATTENDANCE, TOPIC, HOMEWORK }
+enum class TeachingKind { GRADE, ATTENDANCE, TOPIC, HOMEWORK, POSITIVE_NOTE, NEGATIVE_NOTE }
 data class TeachingEntry(val id: String, val teacherId: String, val studentId: String?, val className: String, val kind: TeachingKind, val value: String, val description: String, val weight: Int, val date: LocalDate)
 
 interface WorkspaceRepository {

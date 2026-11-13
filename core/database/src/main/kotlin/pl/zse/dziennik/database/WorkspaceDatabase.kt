@@ -30,5 +30,5 @@ interface WorkspaceDao {
     @Insert suspend fun seedMarker(marker: WorkspaceMeta)
 }
 
-@Database(entities = [MessageEntity::class, TeachingEntity::class, WorkspaceMeta::class], version = 1, exportSchema = true)
-abstract class WorkspaceDatabase : RoomDatabase() { abstract fun workspaceDao(): WorkspaceDao }
+@Database(entities = [MessageEntity::class, TeachingEntity::class, WorkspaceMeta::class, PortalInfoEntity::class, PeriodEntity::class, SchoolTaskEntity::class, SchoolNoteEntity::class, ClassificationEntity::class, HomeworkDoneEntity::class, JustificationEntity::class], version = 2, exportSchema = true, autoMigrations = [AutoMigration(from = 1, to = 2)])
+abstract class WorkspaceDatabase : RoomDatabase() { abstract fun workspaceDao(): WorkspaceDao; abstract fun featuresDao(): DiaryFeaturesDao }

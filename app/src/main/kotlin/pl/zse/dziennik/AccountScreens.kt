@@ -42,7 +42,7 @@ fun LoginScreen(profiles: List<DiaryAccount>, existing: List<DiaryAccount>, busy
                     Column(Modifier.weight(1f)) {
                         Text(account.displayName, style = MaterialTheme.typography.titleMedium)
                         Text(account.className, style = MaterialTheme.typography.bodyMedium)
-                        Text(if (account.role == AccountRole.TEACHER) "Konto nauczyciela · demo" else "Konto uczniowskie · demo", style = MaterialTheme.typography.labelMedium)
+                        Text(when (account.role) { AccountRole.TEACHER -> "Konto nauczyciela · demo"; AccountRole.PARENT -> "Konto rodzica · demo"; AccountRole.STUDENT -> "Konto uczniowskie · demo" }, style = MaterialTheme.typography.labelMedium)
                     }
                     if (selected?.id == account.id) Icon(painterResource(R.drawable.ic_check), contentDescription = "Wybrany profil")
                 }
@@ -76,7 +76,7 @@ fun LoginScreen(profiles: List<DiaryAccount>, existing: List<DiaryAccount>, busy
 @Composable
 fun AccountSheet(session: AccountSession, busy: Boolean, onSelect: (String) -> Unit, onAdd: () -> Unit, onRemove: (String) -> Unit, onDismiss: () -> Unit) {
     var removing by rememberSaveable { mutableStateOf<String?>(null) }
-    ModalBottomSheet(onDismissRequest = { if (!busy) onDismiss() }) {
+    ModalBottomSheet(onDismissRequest = { if (!busy) onDismiss() }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         LazyColumn(contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Text("Twoje konta", style = MaterialTheme.typography.headlineSmall)

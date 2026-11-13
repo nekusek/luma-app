@@ -77,7 +77,7 @@ class WorkspaceRepositoryTest {
             assertEquals(1, snapshot.grades.count { it.description == "Projekt Room" })
             assertEquals(1, snapshot.attendance.count { it.date == today })
             assertEquals(AttendanceStatus.PRESENT, snapshot.attendance.first { it.date == today }.status)
-            assertTrue(snapshot.assessments.any { it.title == "Dokończ projekt" })
+            assertFalse(snapshot.assessments.any { it.title == "Dokończ projekt" })
             val other = combined.observe(mateusz.studentId).first()!!
             assertFalse(other.grades.any { it.description == "Projekt Room" })
             assertFalse(other.assessments.any { it.title == "Dokończ projekt" })
