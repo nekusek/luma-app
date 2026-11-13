@@ -8,6 +8,7 @@ import pl.zse.dziennik.model.*
 class MockDataRepository(private val clock: Clock) : SnapshotSource {
     override suspend fun fetch(studentId: String): SchoolSnapshot {
         val account = requireNotNull(DemoProfiles.accounts.firstOrNull { it.studentId == studentId })
+        require(account.role == AccountRole.STUDENT)
         val today = LocalDate.now(clock.withZone(SchoolZone))
         fun lesson(id: String, number: Int, subject: String, hour: Int, minute: Int, room: String?, status: LessonStatus = LessonStatus.SCHEDULED, group: String? = null): TimetableEntry {
             val start = today.atTime(hour, minute).atZone(SchoolZone).toInstant()

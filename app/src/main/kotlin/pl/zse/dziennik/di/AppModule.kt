@@ -22,7 +22,10 @@ object AppModule {
     @Provides fun dao(database: SchoolDatabase): SchoolDao = database.schoolDao()
     @Provides @Singleton fun source(clock: Clock): SnapshotSource = MockDataRepository(clock)
     @Provides @Singleton fun cachedRepository(dao: SchoolDao, source: SnapshotSource): CachedSchoolRepository = CachedSchoolRepository(dao, source)
-    @Provides fun repository(cached: CachedSchoolRepository): SchoolRepository = cached
+    @Provides @Singleton fun workspaceDatabase(@ApplicationContext context: Context): WorkspaceDatabase =
+        Room.databaseBuilder(context, WorkspaceDatabase::class.java, "luma-workspace-demo.db").build()
+    @Provides @Singleton fun workspace(database: WorkspaceDatabase, clock: Clock): WorkspaceRepository = LocalWorkspaceRepository(database, clock)
+    @Provides fun repository(cached: CachedSchoolRepository, workspace: WorkspaceRepository): SchoolRepository = DemoSchoolRepository(cached, workspace)
     @Provides @Singleton fun preferences(@ApplicationContext context: Context): ThemePreferences = ThemePreferences(context)
     @Provides @Singleton fun accounts(@ApplicationContext context: Context, cached: CachedSchoolRepository): AccountRepository =
         LocalAccountRepository(context, listOf(DemoAuthenticationProvider()), cached::clearStudent)

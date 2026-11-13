@@ -13,8 +13,8 @@ android {
         applicationId = "pl.zse.dziennik"
         minSdk = 26
         targetSdk = 36
-        versionCode = providers.gradleProperty("appVersionCode").orElse("5").get().toInt()
-        versionName = providers.gradleProperty("appVersionName").orElse("0.1.4").get()
+        versionCode = providers.gradleProperty("appVersionCode").orElse("6").get().toInt()
+        versionName = providers.gradleProperty("appVersionName").orElse("0.1.5").get()
     }
     buildFeatures { compose = true }
     testOptions { unitTests.isIncludeAndroidResources = true }

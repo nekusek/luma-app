@@ -5,14 +5,41 @@ Inspiracja lekkością Wulkanowego; niezależny projekt, bez afiliacji ze szkoł
 VULCAN ani autorami Wulkanowego. Kod napisany od podstaw, licencja MIT.
 Zielony akcent jest propozycją projektu, nie potwierdzoną identyfikacją szkoły.
 
-## Wersja demonstracyjna 0.1.4
+## Wersja demonstracyjna 0.1.5
 
 Kompilowalna aplikacja **wyłącznie demonstracyjna**: Pulpit Compose Material 3,
 Room, Hilt, coroutines/StateFlow, DataStore, Material You, dark/AMOLED.
 Pięć zakładek zawiera działające podglądy fikcyjnych danych. Oceny mają prosty
 symulator średniej, plan HorizontalPager, frekwencja zestawienie, Więcej ustawienia
 motywu i link do strony szkoły. Przed pierwszym zasileniem bazy pokazuje pusty stan.
-Nie ma produkcyjnego logowania, pobierania danych, wiadomości ani wysyłania usprawiedliwień.
+Nie ma produkcyjnego logowania, pobierania danych ani wysyłania wiadomości i usprawiedliwień do eduVULCAN. Skrzynka wiadomości działa lokalnie w demo.
+
+## Wiadomości i nauczyciel demo
+
+Zakładka Wiadomości zawiera odebrane, wysłane, status przeczytania, szczegóły,
+odpowiadanie i tworzenie wiadomości do kontaktów demo. Uczeń pisze do nauczyciela,
+a nauczyciel do uczniów. Temat ma limit 120 znaków, treść 5000; puste wiadomości
+są blokowane. Niewysłany tekst wymaga potwierdzenia odrzucenia.
+Wysyłka oznacza lokalny zapis i dostarczenie do drugiego profilu na tym samym
+urządzeniu. Nie łączy się z eduVULCAN, serwerem ani innym telefonem.
+
+Dodaj profil Piotr Wiśniewski w sekcji kont. Nauczyciel ma własny Pulpit,
+Dziennik, przykładowy Plan i Wiadomości. Może wybrać klasę/grupę, oznaczyć obecność,
+dodać ocenę z wagą, temat lekcji i zadanie z terminem. Oceny, obecności i zadania
+są widoczne po przełączeniu na odpowiedniego ucznia, także po odświeżeniu demo.
+Ponowne sprawdzenie obecności aktualizuje wpis danego ucznia na dany dzień.
+Plan nauczyciela to stały przykład dnia, a nie rzeczywisty rozkład szkoły.
+
+`WorkspaceRepository` oddziela funkcje od lokalnej implementacji Room.
+Osobna wersjonowana baza `WorkspaceDatabase` przechowuje wiadomości i wpisy klasy;
+istniejąca baza cache ucznia zachowuje swój schemat. `DemoSchoolRepository` łączy
+cache z wpisami lokalnego nauczyciela. Usunięcie profilu usuwa wybór konta i cache
+ucznia, ale zachowuje wspólną korespondencję i dziennik klasy demo.
+Produkcja wymaga osobnego adaptera, weryfikacji uprawnień na serwerze i autoryzacji;
+wybór roli demo nie daje uprawnień w eduVULCAN.
+
+Dolna nawigacja ucznia ma teraz Wiadomości. Frekwencja jest dostępna z kafelka
+Pulpitu i sekcji Więcej → Frekwencja.
 
 ## Widok ocen
 
@@ -27,7 +54,7 @@ komunikat o ich niedostępności. Nie wyliczamy ocen klasyfikacyjnych ze średni
 
 ## Konta i logowanie demo
 
-Pierwszy start otwiera ekran logowania z dwoma fikcyjnymi profilami uczniów.
+Pierwszy start otwiera ekran logowania z trzema fikcyjnymi profilami: dwoje uczniów i nauczyciel Piotr Wiśniewski.
 Przełącznik kont znajduje się na Pulpicie oraz w sekcji Więcej → Konta i profile.
 Można dodać drugi profil, przełączyć aktywny oraz usunąć konto z urządzenia.
 Lista kont i aktywny profil przetrwają ponowne uruchomienie. Dane Room są rozdzielone
@@ -150,18 +177,21 @@ git push origin main v0.1.0
 ```
 
 W kolejnych iteracjach: pełne moduły funkcji, WorkManager z ograniczeniami sieci
-i backoff, synchronizacja delta per konto i semestr, wiadomości i uwagi, testy
+i backoff, synchronizacja delta per konto i semestr, produkcyjne wiadomości i uwagi, testy
 migracji/instrumentacyjne, testy dostępności i pomiary startupu na urządzeniu.
 
 ## Weryfikacja
 
-Weryfikacja 0.1.4 obejmuje `:core:model:test` (3 testy),
-`:core:data:testDebugUnitTest` (6 testów),
-`:feature:dashboard:testDebugUnitTest` (4 testy), `:app:testDebugUnitTest` (10 testów),
+Weryfikacja 0.1.5 obejmuje `:core:model:test` (3 testy),
+`:core:data:testDebugUnitTest` (11 testów),
+`:feature:dashboard:testDebugUnitTest` (4 testy), `:app:testDebugUnitTest` (14 testów),
 `:app:assembleDebug` oraz `:app:lintDebug`.
 Testy obejmują pełny przepływ logowania, dodawania, przełączania i usuwania kont,
 trwałość wyboru profilu, izolację cache i usuwanie podczas odświeżania.
 Widok ocen ma testy szczegółów, symulatora, granicy roku szkolnego i pustych stanów.
+Testy wiadomości obejmują dostarczenie, odczyt, walidację i trwałość Room.
+Test całej aplikacji sprawdza wiadomość ucznia odebraną przez nauczyciela oraz
+ocenę nauczyciela widoczną u ucznia.
 Lint nie zgłasza błędów; ostrzeżenia dotyczą targetSdk 36 wobec API 37
 oraz dostępności nowszej wersji biblioteki testowej Roborazzi.
 Testy na emulatorze/urządzeniu i kontraktowe testy produkcyjnego VULCAN pozostają

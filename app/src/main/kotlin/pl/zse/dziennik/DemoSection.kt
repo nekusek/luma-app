@@ -20,7 +20,7 @@ import pl.zse.dziennik.model.*
 
 
 @Composable
-fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onTheme: (ThemeMode) -> Unit, modifier: Modifier = Modifier, onError: (String) -> Unit = {}, showAssessments: Boolean = false, onShowAssessments: (Boolean) -> Unit = {}, onAccounts: () -> Unit = {}) {
+fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onTheme: (ThemeMode) -> Unit, modifier: Modifier = Modifier, onError: (String) -> Unit = {}, showAssessments: Boolean = false, onShowAssessments: (Boolean) -> Unit = {}, onAccounts: () -> Unit = {}, onAttendance: (() -> Unit)? = null) {
     val data = state.snapshot
     if (destination == 1) {
         GradesScreen(data?.grades.orEmpty(), state.now.atZone(SchoolZone).toLocalDate(), data?.student?.name.orEmpty(), onAccounts, modifier)
@@ -43,6 +43,7 @@ fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onT
                             Column { Text("Konta i profile", style = MaterialTheme.typography.titleMedium); Text("Przełącz konto lub dodaj nowy profil", style = MaterialTheme.typography.bodySmall) }
                         }
                     } }
+                    if (onAttendance != null) item { OutlinedCard(onClick = onAttendance, modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) { Icon(painterResource(R.drawable.ic_attendance), null); Text("Frekwencja", style = MaterialTheme.typography.titleMedium) } } }
                     item { TextButton(onClick = { onShowAssessments(!showAssessments) }) { Text(if (showAssessments) "Ustawienia" else "Sprawdziany") } }
                     if (showAssessments) {
                         item { Text("Sprawdziany", style = MaterialTheme.typography.titleLarge) }
@@ -70,7 +71,7 @@ fun DemoSection(destination: Int, state: DashboardUiState, theme: ThemeMode, onT
                         catch (_: IllegalArgumentException) { onError("Nie udało się otworzyć strony w przeglądarce.") }
                     }) { Text("zse.rzeszow.pl ↗") } }
                     item { Text("Zastępstwa i plan laboratoriów są niedostępne w wersji demo.", style = MaterialTheme.typography.bodySmall) }
-                    item { Text("Wiadomości i uwagi są niedostępne w wersji demo.", style = MaterialTheme.typography.bodySmall) }
+                    item { Text("Uwagi są niedostępne w wersji demo.", style = MaterialTheme.typography.bodySmall) }
                 }
             }
         }

@@ -42,7 +42,7 @@ fun LoginScreen(profiles: List<DiaryAccount>, existing: List<DiaryAccount>, busy
                     Column(Modifier.weight(1f)) {
                         Text(account.displayName, style = MaterialTheme.typography.titleMedium)
                         Text(account.className, style = MaterialTheme.typography.bodyMedium)
-                        Text("Konto uczniowskie · demo", style = MaterialTheme.typography.labelMedium)
+                        Text(if (account.role == AccountRole.TEACHER) "Konto nauczyciela · demo" else "Konto uczniowskie · demo", style = MaterialTheme.typography.labelMedium)
                     }
                     if (selected?.id == account.id) Icon(painterResource(R.drawable.ic_check), contentDescription = "Wybrany profil")
                 }
@@ -110,7 +110,7 @@ fun AccountSheet(session: AccountSession, busy: Boolean, onSelect: (String) -> U
         onDismissRequest = { removing = null },
         icon = { Icon(painterResource(R.drawable.ic_logout), null) },
         title = { Text("Usunąć konto z urządzenia?") },
-        text = { Text("Konto ${target.displayName} oraz zapisane dane tego profilu zostaną usunięte z urządzenia.") },
+        text = { Text("Profil ${target.displayName} i jego cache dziennika zostaną usunięte. Wspólne wiadomości i wpisy lokalnej klasy demo pozostaną dostępne po ponownym dodaniu profilu.") },
         confirmButton = { TextButton(onClick = { removing = null; onRemove(target.id) }, enabled = !busy) { Text("Usuń konto") } },
         dismissButton = { TextButton(onClick = { removing = null }) { Text("Anuluj") } },
     )

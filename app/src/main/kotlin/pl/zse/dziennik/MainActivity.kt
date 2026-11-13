@@ -39,6 +39,7 @@ class MainActivity : ComponentActivity() {
     private val accounts: AccountsViewModel by viewModels()
     @Inject lateinit var preferences: ThemePreferences
     @Inject lateinit var dashboardFactory: DashboardViewModelFactory
+    @Inject lateinit var workspaceFactory: WorkspaceViewModelFactory
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -82,7 +83,7 @@ class MainActivity : ComponentActivity() {
                             { accounts.signIn(AuthenticationRequest.Demo(it)) }, if (active != null) ({ addingAccount = false }) else null)
                     } else {
                         key(active.id) {
-                            DiaryShell(active, dashboardFactory, theme, preferences, accountState.error, accounts::dismissError) { showingAccounts = true }
+                            DiaryShell(active, dashboardFactory, workspaceFactory, theme, preferences, accountState.error, accounts::dismissError) { showingAccounts = true }
                         }
                         if (showingAccounts) AccountSheet(session, accountState.busy,
                             onSelect = { showingAccounts = false; accounts.activate(it) },
@@ -97,17 +98,20 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun DiaryShell(account: DiaryAccount, factory: DashboardViewModelFactory, theme: ThemeMode, preferences: ThemePreferences, accountError: String?, onErrorConsumed: () -> Unit, onAccounts: () -> Unit) {
+private fun DiaryShell(account: DiaryAccount, factory: DashboardViewModelFactory, workspaceFactory: WorkspaceViewModelFactory, theme: ThemeMode, preferences: ThemePreferences, accountError: String?, onErrorConsumed: () -> Unit, onAccounts: () -> Unit) {
     val store = remember(account.id) { ViewModelStore() }
     DisposableEffect(store) { onDispose { store.clear() } }
-    val viewModel = remember(account.id, store) { ViewModelProvider(store, viewModelFactory { initializer { factory.create(account.studentId) } })[DashboardViewModel::class.java] }
+    val teacher = account.role == AccountRole.TEACHER
+    val workspace = remember(account.id, store) { ViewModelProvider(store, viewModelFactory { initializer { workspaceFactory.create(account) } })[WorkspaceViewModel::class.java] }
+    val workspaceState by workspace.state.collectAsStateWithLifecycle()
+    val viewModel = remember(account.id, store) { if (teacher) null else ViewModelProvider(store, viewModelFactory { initializer { factory.create(account.studentId) } })[DashboardViewModel::class.java] }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_START) viewModel.refresh() }
+        val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_START) viewModel?.refresh() }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    val state by viewModel.state.collectAsStateWithLifecycle()
+    val state = viewModel?.state?.collectAsStateWithLifecycle()?.value ?: DashboardUiState()
     val scope = rememberCoroutineScope()
     var destination by rememberSaveable { mutableIntStateOf(0) }
     var showAssessments by rememberSaveable { mutableStateOf(false) }
@@ -116,19 +120,26 @@ private fun DiaryShell(account: DiaryAccount, factory: DashboardViewModelFactory
     LaunchedEffect(accountError) {
         accountError?.let { snackbar.showSnackbar(it); onErrorConsumed() }
     }
+    LaunchedEffect(workspaceState.notice) {
+        workspaceState.notice?.let { snackbar.showSnackbar(it); workspace.dismissNotice() }
+    }
     BackHandler(enabled = destination != 0) { destination = 0 }
     Scaffold(snackbarHost = { SnackbarHost(snackbar) }, bottomBar = {
         NavigationBar {
-            val titles = listOf("Pulpit", "Oceny", "Plan", "Obecności", "Więcej")
-            val icons = listOf(R.drawable.ic_dashboard, R.drawable.ic_grades, R.drawable.ic_timetable, R.drawable.ic_attendance, R.drawable.ic_more)
+            val destinations = listOf(0, 1, 2, 5, 4)
+            val titles = if (teacher) listOf("Pulpit", "Dziennik", "Plan", "Wiadomości", "Więcej") else listOf("Pulpit", "Oceny", "Plan", "Wiadomości", "Więcej")
+            val icons = listOf(R.drawable.ic_dashboard, R.drawable.ic_grades, R.drawable.ic_timetable, R.drawable.ic_messages, R.drawable.ic_more)
             titles.forEachIndexed { index, title ->
-                NavigationBarItem(selected = destination == index, onClick = { destination = index; showAssessments = false },
-                    icon = { Icon(painterResource(icons[index]), contentDescription = null) }, label = { Text(title, maxLines = 2) })
+                val target = destinations[index]
+                NavigationBarItem(selected = destination == target || (target == 4 && destination == 3), onClick = { destination = target; showAssessments = false },
+                    icon = { Icon(painterResource(icons[index]), contentDescription = null) }, label = { Text(title, maxLines = 1, style = MaterialTheme.typography.labelSmall) })
             }
         }
     }) { padding ->
         screens.SaveableStateProvider(destination) {
-            if (destination == 0) DashboardRoute(viewModel, Modifier.padding(padding), onNavigate = { target ->
+            if (destination == 5) MessagesScreen(account, workspace.contacts, workspaceState, workspace::read, workspace::send, workspace::retry, workspace::clearError, Modifier.padding(padding))
+            else if (teacher && destination != 4) TeacherScreen(destination, workspace, workspaceState, { destination = it }, onAccounts, Modifier.padding(padding))
+            else if (destination == 0) DashboardRoute(requireNotNull(viewModel), Modifier.padding(padding), onNavigate = { target ->
                 showAssessments = target == DashboardDestination.ASSESSMENTS
                 destination = when (target) {
                     DashboardDestination.GRADES -> 1
@@ -144,7 +155,7 @@ private fun DiaryShell(account: DiaryAccount, factory: DashboardViewModelFactory
                     try { preferences.setTheme(mode) }
                     catch (_: IOException) { snackbar.showSnackbar("Nie udało się zapisać motywu. Spróbuj ponownie.") }
                 }
-            }, Modifier.padding(padding), onError = { message -> scope.launch { snackbar.showSnackbar(message) } }, showAssessments = showAssessments, onShowAssessments = { showAssessments = it }, onAccounts = onAccounts)
+            }, Modifier.padding(padding), onError = { message -> scope.launch { snackbar.showSnackbar(message) } }, showAssessments = showAssessments, onShowAssessments = { showAssessments = it }, onAccounts = onAccounts, onAttendance = if (!teacher) ({ destination = 3 }) else null)
         }
     }
 }

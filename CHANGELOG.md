@@ -1,5 +1,16 @@
 # Luma
 
+## 0.1.5 — 2026-11-13
+
+- Zakładka Wiadomości: odebrane, wysłane, odczyt, odpowiedzi i lokalna wysyłka do profili demo.
+- Formularz z wyborem odbiorcy, walidacją i potwierdzeniem odrzucenia tekstu.
+- Konto nauczyciela Piotr Wiśniewski z własnym Pulpitem, Dziennikiem i przykładowym Planem.
+- Wybór klasy, obecności, oceny z wagami, tematy lekcji oraz zadania z terminem.
+- Oceny, obecności i zadania nauczyciela widoczne w odpowiednim profilu ucznia.
+- Trwały zapis wiadomości i wpisów w osobnej bazie Room.
+- Frekwencja dostępna z Pulpitu oraz sekcji Więcej.
+- Testy uprawnień demo, izolacji profili, trwałości i pełnego przepływu uczeń–nauczyciel.
+
 ## 0.1.4 — 2026-11-12
 
 - Nowa lista ocen: przedmioty, kolorowe wartości i średnie po prawej.

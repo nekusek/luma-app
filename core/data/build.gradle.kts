@@ -14,6 +14,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:database"))
     implementation(libs.coroutines.core)
+    implementation(libs.room.ktx)
     implementation(libs.datastore)
     implementation(libs.serialization.json)
     testImplementation(libs.junit)
